@@ -1,0 +1,555 @@
+<script>
+  const state = {
+    botellas: [],
+    catalogoCompleto: [],
+    temp: { items: [], zona5: 0, formatos: [], bloqueo: {} },
+    pollingMs: 7000,
+    saving: false,
+    currentRecord: null
+  };
+
+  const $ = (selector) => document.querySelector(selector);
+
+  function callApi(name, ...args) {
+    return new Promise((resolve, reject) => {
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (!response || !response.ok) {
+            reject(new Error(response && response.error ? response.error : 'Error desconocido'));
+            return;
+          }
+          resolve(response.data);
+        })
+        .withFailureHandler(reject)[name](...args);
+    });
+  }
+
+  function toast(message, isError = false) {
+    const el = $('#toast');
+    el.textContent = message;
+    el.style.background = isError ? 'var(--danger)' : 'var(--text)';
+    el.classList.add('show');
+    window.setTimeout(() => el.classList.remove('show'), 3600);
+  }
+
+  function formatNumber(value) {
+    return Number(value || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 });
+  }
+
+  function formatDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    return date.toLocaleDateString('es-CL');
+  }
+
+  function formatTime(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    return date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function setThemeAuto() {
+    const hour = new Date().getHours();
+    document.body.classList.toggle('dark', hour < 7 || hour >= 20);
+  }
+
+  function renderBotellas() {
+    const options = ['<option value="">Seleccionar</option>'].concat(
+      state.botellas.map((item) => `<option value="${item.codigo}">${item.codigo} - ${item.descripcion}</option>`)
+    );
+    $('#botellaSelect').innerHTML = options.join('');
+    $('#reportCodigo').innerHTML = '<option value="">Todas</option>' + state.botellas
+      .map((item) => `<option value="${item.codigo}">${item.codigo}</option>`)
+      .join('');
+  }
+
+  function renderFormatos() {
+    $('#formato').innerHTML = state.temp.formatos
+      .map((formato) => `<option value="${formato}">${formato}</option>`)
+      .join('');
+    $('#formatosInput').value = state.temp.formatos.join(',');
+  }
+
+  function renderTemp() {
+    const temp = state.temp;
+    $('#zona5').textContent = formatNumber(temp.zona5);
+    $('#lockStatus').textContent = temp.bloqueo && temp.bloqueo.codigo
+      ? `Botella bloqueada: ${temp.bloqueo.codigo} - ${temp.bloqueo.descripcion}`
+      : 'Sin botella bloqueada.';
+    $('#tempRows').innerHTML = temp.items.length
+      ? temp.items.map((item) => `
+        <tr>
+          <td>${item.codigoProduccion}</td>
+          <td>${item.formato}</td>
+          <td>${item.cantidadCajas}</td>
+          <td>${formatNumber(item.totalBotellas)}</td>
+          <td>
+            <div class="row-actions">
+              <button data-edit-temp="${item.id}">Editar</button>
+              <button class="danger" data-delete-temp="${item.id}">Eliminar</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="5" class="muted">Sin lineas temporales.</td></tr>';
+  }
+
+  function renderCatalogo() {
+    $('#catalogRows').innerHTML = state.catalogoCompleto.length
+      ? state.catalogoCompleto.map((item) => `
+        <tr>
+          <td>${item.codigo}</td>
+          <td>${item.descripcion}</td>
+          <td>${item.estado}</td>
+          <td>
+            <div class="row-actions">
+              <button data-edit-bottle="${item.codigo}">Editar</button>
+              <button data-toggle-bottle="${item.codigo}" data-next="${item.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO'}">
+                ${item.estado === 'ACTIVO' ? 'Desactivar' : 'Reactivar'}
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="4" class="muted">Sin botellas.</td></tr>';
+  }
+
+  function renderDashboard(data) {
+    const totals = data.totals;
+    $('#kpiZona1').textContent = formatNumber(totals.zona1);
+    $('#kpiZona5').textContent = formatNumber(totals.zona5);
+    $('#kpiMerma').textContent = formatNumber(totals.merma);
+    $('#kpiPct').textContent = `${formatNumber(totals.porcentajeMerma)}%`;
+    $('#kpiRegistros').textContent = formatNumber(totals.cantidadRegistros);
+  }
+
+  function renderReport(data) {
+    const totals = data.totals;
+    $('#reportSummary').textContent =
+      `Zona 1: ${formatNumber(totals.zona1)} | Zona 5: ${formatNumber(totals.zona5)} | ` +
+      `Merma: ${formatNumber(totals.merma)} | %: ${formatNumber(totals.porcentajeMerma)} | ` +
+      `Registros: ${formatNumber(totals.cantidadRegistros)}`;
+    $('#reportRows').innerHTML = data.rows.length
+      ? data.rows.map((row) => `
+        <tr data-registro="${row.ID_REGISTRO}">
+          <td>${formatDate(row.FECHA_HORA)}</td>
+          <td>${formatTime(row.FECHA_HORA)}</td>
+          <td>${row.CODIGO_BOTELLA}</td>
+          <td>${row.DESCRIPCION_BOTELLA}</td>
+          <td>${formatNumber(row.ZONA_1)}</td>
+          <td>${formatNumber(row.ZONA_5)}</td>
+          <td>${formatNumber(row.MERMA)}</td>
+          <td>${formatNumber(row.PORCENTAJE_MERMA)}%</td>
+          <td><button data-open-record="${row.ID_REGISTRO}">Abrir</button></td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="9" class="muted">Sin resultados.</td></tr>';
+  }
+
+  function renderDetailEditor(item = {}) {
+    const id = item.ID_DETALLE || '';
+    return `
+      <div class="edit-detail-row" data-detail-id="${id}">
+        <label>Codigo produccion
+          <input class="editCodigoProduccion" value="${item.CODIGO_PRODUCCION || ''}">
+        </label>
+        <label>Formato
+          <select class="editFormato">
+            ${state.temp.formatos.map((formato) => `
+              <option value="${formato}" ${Number(item.FORMATO || formato) === Number(formato) ? 'selected' : ''}>${formato}</option>
+            `).join('')}
+          </select>
+        </label>
+        <label>Cajas
+          <input class="editCantidadCajas" type="number" min="0" step="1" value="${item.CANTIDAD_CAJAS || 0}">
+        </label>
+        <button type="button" class="danger" data-remove-detail>Quitar</button>
+      </div>
+    `;
+  }
+
+  function renderRecordDialog(data) {
+    state.currentRecord = data;
+    const registro = data.registro;
+    const detalles = data.detalles.filter((item) => item.ESTADO !== 'ELIMINADO');
+    $('#recordBody').innerHTML = `
+      <div class="detail-grid">
+        <label>Codigo botella
+          <select id="editCodigoBotella">
+            ${state.botellas.map((item) => `
+              <option value="${item.codigo}" ${item.codigo === registro.CODIGO_BOTELLA ? 'selected' : ''}>
+                ${item.codigo} - ${item.descripcion}
+              </option>
+            `).join('')}
+          </select>
+        </label>
+        <label>Zona 1
+          <input id="editZona1" type="number" min="0" step="1" value="${registro.ZONA_1}">
+        </label>
+        <label>Motivo
+          <input id="editMotivo" placeholder="Motivo obligatorio">
+        </label>
+      </div>
+      <div id="editDetails">
+        ${detalles.map(renderDetailEditor).join('')}
+      </div>
+      <button type="button" id="addEditDetail">Agregar linea</button>
+      <p class="muted">Las lineas quitadas se marcan como ELIMINADO al guardar.</p>
+    `;
+    $('#recordDialog').showModal();
+  }
+
+  async function refreshTemp(silent = true) {
+    try {
+      state.temp = await callApi('apiGetTempState');
+      renderTemp();
+      renderFormatos();
+    } catch (error) {
+      if (!silent) toast(error.message, true);
+    }
+  }
+
+  async function bootstrap() {
+    try {
+      const data = await callApi('apiBootstrap');
+      $('#companyName').textContent = data.empresa;
+      state.pollingMs = data.pollingMs;
+      state.botellas = data.botellas;
+      state.catalogoCompleto = data.catalogoCompleto;
+      state.temp = data.temp;
+      renderBotellas();
+      renderFormatos();
+      renderTemp();
+      renderCatalogo();
+      renderDashboard(data.dashboard);
+      window.setInterval(() => refreshTemp(true), state.pollingMs);
+    } catch (error) {
+      toast(error.message, true);
+    }
+  }
+
+  document.addEventListener('click', async (event) => {
+    const tab = event.target.closest('[data-tab]');
+    if (tab) {
+      document.querySelectorAll('.tab, .view').forEach((el) => el.classList.remove('is-active'));
+      tab.classList.add('is-active');
+      $('#' + tab.dataset.tab).classList.add('is-active');
+      return;
+    }
+
+    const deleteTemp = event.target.closest('[data-delete-temp]');
+    if (deleteTemp) {
+      try {
+        state.temp = await callApi('apiDeleteTempLine', deleteTemp.dataset.deleteTemp);
+        renderTemp();
+        toast('Linea eliminada.');
+      } catch (error) {
+        toast(error.message, true);
+      }
+      return;
+    }
+
+    const editTemp = event.target.closest('[data-edit-temp]');
+    if (editTemp) {
+      const item = state.temp.items.find((line) => line.id === editTemp.dataset.editTemp);
+      if (!item) return;
+      const codigoProduccion = prompt('Codigo de produccion', item.codigoProduccion);
+      if (codigoProduccion === null) return;
+      const formato = prompt('Formato', item.formato);
+      if (formato === null) return;
+      const cantidadCajas = prompt('Cantidad de cajas', item.cantidadCajas);
+      if (cantidadCajas === null) return;
+      try {
+        state.temp = await callApi('apiUpdateTempLine', item.id, { codigoProduccion, formato, cantidadCajas });
+        renderTemp();
+        toast('Linea actualizada.');
+      } catch (error) {
+        toast(error.message, true);
+      }
+      return;
+    }
+
+    const editBottle = event.target.closest('[data-edit-bottle]');
+    if (editBottle) {
+      const item = state.catalogoCompleto.find((row) => row.codigo === editBottle.dataset.editBottle);
+      if (!item) return;
+      $('#catalogCodigo').value = item.codigo;
+      $('#catalogDescripcion').value = item.descripcion;
+      return;
+    }
+
+    const toggleBottle = event.target.closest('[data-toggle-bottle]');
+    if (toggleBottle) {
+      try {
+        state.catalogoCompleto = await callApi(
+          'apiSetBotellaEstado',
+          toggleBottle.dataset.toggleBottle,
+          toggleBottle.dataset.next
+        );
+        state.botellas = state.catalogoCompleto.filter((row) => row.estado === 'ACTIVO');
+        renderBotellas();
+        renderCatalogo();
+        toast('Estado actualizado.');
+      } catch (error) {
+        toast(error.message, true);
+      }
+      return;
+    }
+
+    const openRecord = event.target.closest('[data-open-record]');
+    if (openRecord) {
+      try {
+        renderRecordDialog(await callApi('apiGetRegistro', openRecord.dataset.openRecord));
+      } catch (error) {
+        toast(error.message, true);
+      }
+      return;
+    }
+
+    if (event.target.closest('[data-remove-detail]')) {
+      event.target.closest('.edit-detail-row').remove();
+      return;
+    }
+
+    if (event.target.id === 'addEditDetail') {
+      $('#editDetails').insertAdjacentHTML('beforeend', renderDetailEditor());
+    }
+  });
+
+  $('#themeToggle').addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+  });
+
+  $('#setupWorkbook').addEventListener('click', async () => {
+    try {
+      const result = await callApi('apiSetupWorkbook');
+      toast(result);
+      await bootstrap();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#saveFormatos').addEventListener('click', async () => {
+    try {
+      const values = $('#formatosInput').value
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map(Number);
+      state.temp.formatos = await callApi('apiSaveFormatos', values);
+      renderFormatos();
+      toast('Formatos actualizados.');
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#startBottle').addEventListener('click', async () => {
+    try {
+      state.temp = await callApi('apiStartTempBottle', $('#botellaSelect').value);
+      renderTemp();
+      toast('Botella bloqueada.');
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#addLine').addEventListener('click', async () => {
+    try {
+      state.temp = await callApi('apiAddTempLine', {
+        codigoProduccion: $('#codigoProduccion').value,
+        formato: $('#formato').value,
+        cantidadCajas: $('#cantidadCajas').value
+      });
+      $('#codigoProduccion').value = '';
+      $('#cantidadCajas').value = '0';
+      renderTemp();
+      toast('Linea agregada.');
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#cancelTemp').addEventListener('click', async () => {
+    if (!confirm('Cancelar la merma en curso limpiara la lista temporal.')) return;
+    try {
+      state.temp = await callApi('apiCancelTempList');
+      $('#zona1').value = '0';
+      renderTemp();
+      toast('Merma cancelada.');
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#previewSave').addEventListener('click', () => {
+    const zona1 = Number($('#zona1').value || 0);
+    const zona5 = Number(state.temp.zona5 || 0);
+    if (!Number.isInteger(zona1) || zona1 < 0) {
+      toast('Zona 1 debe ser entero mayor o igual a cero.', true);
+      return;
+    }
+    if (zona5 > zona1) {
+      toast('Zona 5 no puede ser mayor que Zona 1.', true);
+      return;
+    }
+    const merma = zona1 - zona5;
+    const pct = zona1 === 0 ? 0 : (merma / zona1) * 100;
+    $('#confirmBody').innerHTML = `
+      <p>Zona 1: <strong>${formatNumber(zona1)}</strong></p>
+      <p>Zona 5: <strong>${formatNumber(zona5)}</strong></p>
+      <p>Merma: <strong>${formatNumber(merma)}</strong></p>
+      <p>% de merma: <strong>${formatNumber(pct)}%</strong></p>
+    `;
+    $('#confirmDialog').showModal();
+  });
+
+  $('#saveRegistro').addEventListener('click', async (event) => {
+    event.preventDefault();
+    if (state.saving) return;
+    state.saving = true;
+    try {
+      await callApi('apiSaveRegistro', { zona1: $('#zona1').value });
+      $('#confirmDialog').close();
+      $('#zona1').value = '0';
+      state.temp = await callApi('apiGetTempState');
+      renderTemp();
+      renderDashboard(await callApi('apiGetDashboard', {}));
+      toast('Registro guardado correctamente.');
+    } catch (error) {
+      toast(error.message, true);
+    } finally {
+      state.saving = false;
+    }
+  });
+
+  $('#saveBottle').addEventListener('click', async () => {
+    try {
+      state.catalogoCompleto = await callApi('apiSaveBotella', {
+        codigo: $('#catalogCodigo').value,
+        descripcion: $('#catalogDescripcion').value
+      });
+      state.botellas = state.catalogoCompleto.filter((row) => row.estado === 'ACTIVO');
+      $('#catalogCodigo').value = '';
+      $('#catalogDescripcion').value = '';
+      renderBotellas();
+      renderCatalogo();
+      toast('Botella guardada.');
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#loadDashboard').addEventListener('click', async () => {
+    try {
+      renderDashboard(await callApi('apiGetDashboard', {
+        desde: $('#dashDesde').value,
+        hasta: $('#dashHasta').value
+      }));
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#loadReport').addEventListener('click', async () => {
+    try {
+      renderReport(await callApi('apiGetReport', {
+        desde: $('#reportDesde').value,
+        hasta: $('#reportHasta').value,
+        codigoBotella: $('#reportCodigo').value
+      }));
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#printReport').addEventListener('click', () => window.print());
+
+  $('#showDeleted').addEventListener('click', async () => {
+    try {
+      const rows = await callApi('apiGetDeletedRecords');
+      $('#deletedRows').innerHTML = rows.length
+        ? rows.map((row) => `
+          <tr>
+            <td>${formatDate(row.FECHA_ELIMINACION)}</td>
+            <td>${row.CODIGO_BOTELLA}</td>
+            <td>${formatNumber(row.ZONA_1)}</td>
+            <td>${formatNumber(row.ZONA_5)}</td>
+            <td><button data-restore="${row.ID_REGISTRO}">Restaurar</button></td>
+          </tr>
+        `).join('')
+        : '<tr><td colspan="5" class="muted">Sin eliminados.</td></tr>';
+      $('#deletedDialog').showModal();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#deletedRows').addEventListener('click', async (event) => {
+    const restore = event.target.closest('[data-restore]');
+    if (!restore) return;
+    const motivo = prompt('Motivo de restauracion');
+    if (!motivo) return;
+    try {
+      await callApi('apiRestoreRegistro', restore.dataset.restore, motivo);
+      toast('Registro restaurado.');
+      $('#deletedDialog').close();
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#deleteRegistro').addEventListener('click', async (event) => {
+    event.preventDefault();
+    if (!state.currentRecord) return;
+    const motivo = prompt('Motivo de eliminacion');
+    if (!motivo) return;
+    try {
+      await callApi('apiDeleteRegistro', state.currentRecord.registro.ID_REGISTRO, motivo);
+      $('#recordDialog').close();
+      toast('Registro eliminado.');
+      renderReport(await callApi('apiGetReport', {
+        desde: $('#reportDesde').value,
+        hasta: $('#reportHasta').value,
+        codigoBotella: $('#reportCodigo').value
+      }));
+      renderDashboard(await callApi('apiGetDashboard', {}));
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#updateRegistro').addEventListener('click', async (event) => {
+    event.preventDefault();
+    if (!state.currentRecord) return;
+    const detalles = Array.from(document.querySelectorAll('.edit-detail-row')).map((row) => ({
+      idDetalle: row.dataset.detailId,
+      codigoProduccion: row.querySelector('.editCodigoProduccion').value,
+      formato: row.querySelector('.editFormato').value,
+      cantidadCajas: row.querySelector('.editCantidadCajas').value
+    }));
+    try {
+      await callApi('apiUpdateRegistro', {
+        idRegistro: state.currentRecord.registro.ID_REGISTRO,
+        codigoBotella: $('#editCodigoBotella').value,
+        zona1: $('#editZona1').value,
+        motivo: $('#editMotivo').value,
+        detalles
+      });
+      $('#recordDialog').close();
+      toast('Registro modificado.');
+      renderReport(await callApi('apiGetReport', {
+        desde: $('#reportDesde').value,
+        hasta: $('#reportHasta').value,
+        codigoBotella: $('#reportCodigo').value
+      }));
+      renderDashboard(await callApi('apiGetDashboard', {}));
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  setThemeAuto();
+  bootstrap();
+</script>

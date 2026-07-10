@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Merma de Botellas</title>
+    <?!= include('src/Styles'); ?>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-mark">MB</div>
+        <div>
+          <strong id="companyName">Empresa</strong>
+          <span>Merma de botellas</span>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="Navegacion principal">
+        <button class="tab is-active" data-tab="registro">Registro</button>
+        <button class="tab" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="reporte">Reporte</button>
+        <button class="tab" data-tab="catalogo">Catalogo</button>
+        <button class="tab" data-tab="configuracion">Configuracion</button>
+      </nav>
+      <button class="icon-button" id="themeToggle" title="Cambiar tema">◐</button>
+    </header>
+
+    <main>
+      <section id="registro" class="view is-active">
+        <div class="section-head">
+          <h1>Registro</h1>
+          <button class="danger" id="cancelTemp">Cancelar merma en curso</button>
+        </div>
+
+        <div class="work-grid">
+          <section class="panel">
+            <h2>Botella</h2>
+            <label>Codigo de botella
+              <select id="botellaSelect"></select>
+            </label>
+            <button id="startBottle">Bloquear botella</button>
+            <p class="muted" id="lockStatus">Sin botella bloqueada.</p>
+          </section>
+
+          <section class="panel">
+            <h2>Produccion</h2>
+            <div class="form-row">
+              <label>Codigo produccion
+                <input id="codigoProduccion" autocomplete="off">
+              </label>
+              <label>Formato
+                <select id="formato"></select>
+              </label>
+              <label>Cajas
+                <input id="cantidadCajas" type="number" min="0" step="1" value="0">
+              </label>
+            </div>
+            <button id="addLine">Agregar linea</button>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="section-head compact">
+            <h2>Lista temporal compartida</h2>
+            <strong>Zona 5: <span id="zona5">0</span></strong>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Codigo produccion</th>
+                  <th>Formato</th>
+                  <th>Cajas</th>
+                  <th>Total</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tempRows"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Cierre</h2>
+          <div class="form-row close-row">
+            <label>Zona 1
+              <input id="zona1" type="number" min="0" step="1" value="0">
+            </label>
+            <button id="previewSave">Confirmar y guardar</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="dashboard" class="view">
+        <div class="section-head">
+          <h1>Dashboard</h1>
+          <div class="filters">
+            <input id="dashDesde" type="date">
+            <input id="dashHasta" type="date">
+            <button id="loadDashboard">Actualizar</button>
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi"><span>Total Zona 1</span><strong id="kpiZona1">0</strong></div>
+          <div class="kpi"><span>Total Zona 5</span><strong id="kpiZona5">0</strong></div>
+          <div class="kpi"><span>Merma total</span><strong id="kpiMerma">0</strong></div>
+          <div class="kpi"><span>% merma</span><strong id="kpiPct">0%</strong></div>
+          <div class="kpi"><span>Registros</span><strong id="kpiRegistros">0</strong></div>
+        </div>
+      </section>
+
+      <section id="reporte" class="view">
+        <div class="section-head">
+          <h1>Reporte</h1>
+          <div class="filters">
+            <input id="reportDesde" type="date">
+            <input id="reportHasta" type="date">
+            <select id="reportCodigo"></select>
+            <button id="loadReport">Buscar</button>
+            <button id="printReport">PDF</button>
+            <button id="showDeleted">Ver eliminados</button>
+          </div>
+        </div>
+        <div id="printArea" class="panel">
+          <h2>Resumen</h2>
+          <div class="summary-line" id="reportSummary"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Codigo</th>
+                  <th>Descripcion</th>
+                  <th>Zona 1</th>
+                  <th>Zona 5</th>
+                  <th>Merma</th>
+                  <th>%</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="reportRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="catalogo" class="view">
+        <div class="section-head">
+          <h1>Catalogo</h1>
+        </div>
+        <section class="panel">
+          <div class="form-row">
+            <label>Codigo
+              <input id="catalogCodigo">
+            </label>
+            <label>Descripcion
+              <input id="catalogDescripcion">
+            </label>
+            <button id="saveBottle">Guardar botella</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Codigo</th>
+                  <th>Descripcion</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="catalogRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="configuracion" class="view">
+        <div class="section-head">
+          <h1>Configuracion</h1>
+        </div>
+        <section class="panel">
+          <div class="form-row">
+            <label>Formatos permitidos
+              <input id="formatosInput" placeholder="1,6,8,12,24">
+            </label>
+            <button id="saveFormatos">Guardar formatos</button>
+          </div>
+          <p class="muted">Separar formatos con coma. Los cambios se validan tambien en backend.</p>
+          <button id="setupWorkbook">Crear/verificar hojas base</button>
+        </section>
+      </section>
+    </main>
+
+    <dialog id="confirmDialog">
+      <form method="dialog">
+        <h2>Confirmacion final</h2>
+        <div id="confirmBody"></div>
+        <menu>
+          <button value="cancel" class="secondary">Volver</button>
+          <button value="confirm" id="saveRegistro">Guardar</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="deletedDialog">
+      <form method="dialog">
+        <h2>Registros eliminados</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha eliminacion</th>
+                <th>Codigo</th>
+                <th>Zona 1</th>
+                <th>Zona 5</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="deletedRows"></tbody>
+          </table>
+        </div>
+        <menu>
+          <button value="close">Cerrar</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="recordDialog">
+      <form method="dialog">
+        <h2>Registro</h2>
+        <div id="recordBody"></div>
+        <menu>
+          <button value="close" class="secondary">Cerrar</button>
+          <button value="delete" class="danger" id="deleteRegistro">Eliminar</button>
+          <button value="save" id="updateRegistro">Guardar modificacion</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <div id="toast" role="status" aria-live="polite"></div>
+    <?!= include('src/Client'); ?>
+  </body>
+</html>
