@@ -38,6 +38,9 @@ Ver detalle en `docs/DESPLIEGUE_APPS_SCRIPT.md`.
 npm run validate
 ```
 
+La misma validacion se ejecuta en GitHub Actions para cada push a `main` y en
+pull requests.
+
 ## Regla de aislamiento
 
 Este repositorio no modifica, conecta ni depende del sistema actual. El sistema
