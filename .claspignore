@@ -1,0 +1,6 @@
+**
+!appsscript.json
+!src/
+!src/**
+!src/**/*.gs
+!src/**/*.html

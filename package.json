@@ -1,0 +1,10 @@
+{
+  "name": "merma-botellas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App Google Apps Script para merma de botellas.",
+  "scripts": {
+    "validate": "node tools/validate.js"
+  },
+  "devDependencies": {}
+}

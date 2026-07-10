@@ -16,6 +16,12 @@
 
 ## 3. Subir con clasp
 
+Antes de subir, validar:
+
+```powershell
+npm run validate
+```
+
 ```powershell
 clasp push
 ```

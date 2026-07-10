@@ -17,6 +17,8 @@ hoja real todavia.
 - `docs/DESPLIEGUE_APPS_SCRIPT.md`: guia operativa para publicar.
 - `appsscript.json`: manifiesto base de Apps Script.
 - `.clasp.example.json`: plantilla para conectar un proyecto Apps Script nuevo.
+- `.claspignore`: evita subir documentacion y scripts auxiliares a Apps Script.
+- `tools/validate.js`: validacion local de sintaxis y estructura.
 
 ## Primer uso
 
@@ -29,6 +31,12 @@ hoja real todavia.
 7. Desplegar como Web App restringida al dominio corporativo.
 
 Ver detalle en `docs/DESPLIEGUE_APPS_SCRIPT.md`.
+
+## Validacion local
+
+```powershell
+npm run validate
+```
 
 ## Regla de aislamiento
 
