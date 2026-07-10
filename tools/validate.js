@@ -21,7 +21,7 @@ function assert(condition, message) {
 }
 
 function parseGs() {
-  const files = listFiles(srcDir, '.gs');
+  const files = ['Code.gs'].map((file) => path.join(root, file)).concat(listFiles(srcDir, '.gs'));
   const source = files.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
   new Function(source);
   return files.length;
@@ -41,7 +41,7 @@ function validateManifest() {
 
 function validateClaspIgnore() {
   const ignore = read('.claspignore');
-  ['!appsscript.json', '!src/', '!src/**/*.gs', '!src/**/*.html'].forEach((line) => {
+  ['!appsscript.json', '!Code.gs', '!src/', '!src/**/*.gs', '!src/**/*.html'].forEach((line) => {
     assert(ignore.includes(line), '.claspignore no incluye ' + line);
   });
 }

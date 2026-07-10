@@ -1,5 +1,6 @@
 **
 !appsscript.json
+!Code.gs
 !src/
 !src/**/*.gs
 !src/**/*.html

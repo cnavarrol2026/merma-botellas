@@ -36,7 +36,7 @@ clasp.cmd push
 ## 4. Preparar hojas
 
 1. Abrir Apps Script.
-2. Ejecutar `setupWorkbook()`.
+2. Ejecutar `runSetupWorkbook()`.
 3. Aceptar permisos.
 4. Confirmar que se crearon estas hojas:
    `CONFIGURACION`, `CATALOGO_BOTELLAS`, `REGISTROS_BOTELLAS`,
