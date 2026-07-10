@@ -1,8 +1,12 @@
 function getWorkbook_() {
-  if (!APP_CONFIG.SPREADSHEET_ID || APP_CONFIG.SPREADSHEET_ID.indexOf('REEMPLAZAR_') === 0) {
-    throw new Error('Configura APP_CONFIG.SPREADSHEET_ID antes de usar la aplicacion.');
+  if (APP_CONFIG.SPREADSHEET_ID && APP_CONFIG.SPREADSHEET_ID.indexOf('REEMPLAZAR_') !== 0) {
+    return SpreadsheetApp.openById(APP_CONFIG.SPREADSHEET_ID);
   }
-  return SpreadsheetApp.openById(APP_CONFIG.SPREADSHEET_ID);
+  const active = SpreadsheetApp.getActiveSpreadsheet();
+  if (!active) {
+    throw new Error('Configura APP_CONFIG.SPREADSHEET_ID o usa un proyecto vinculado a Google Sheets.');
+  }
+  return active;
 }
 
 function now_() {

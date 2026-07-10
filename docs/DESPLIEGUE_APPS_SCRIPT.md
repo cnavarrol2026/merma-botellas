@@ -11,8 +11,9 @@
 
 1. Copiar `.clasp.example.json` a `.clasp.json`.
 2. Reemplazar `REEMPLAZAR_CON_SCRIPT_ID_NUEVO` por el `scriptId`.
-3. En `src/Config.gs`, reemplazar `REEMPLAZAR_CON_SPREADSHEET_ID_NUEVO`
-   por el ID del Google Sheets nuevo.
+3. Si el Apps Script esta vinculado al Google Sheets creado con `clasp create
+   --type sheets`, dejar `SPREADSHEET_ID` vacio. Si se usa un proyecto
+   independiente, completar `SPREADSHEET_ID` con el ID de la hoja.
 
 ## 3. Subir con clasp
 

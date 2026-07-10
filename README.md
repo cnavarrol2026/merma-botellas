@@ -6,8 +6,8 @@ Google Sheets.
 
 ## Estado
 
-Scaffold inicial local. No esta conectado a ningun proyecto Apps Script ni a una
-hoja real todavia.
+Scaffold inicial local. La conexion real a Apps Script vive en `.clasp.json`,
+archivo ignorado por Git para no publicar configuracion local.
 
 ## Estructura
 
@@ -26,7 +26,7 @@ hoja real todavia.
 2. Crear un proyecto Apps Script nuevo vinculado o independiente.
 3. Copiar `.clasp.example.json` a `.clasp.json` y completar `scriptId`.
 4. Ejecutar `clasp push` cuando `clasp` este autenticado.
-5. En Apps Script, configurar `SPREADSHEET_ID` en `src/Config.gs`.
+5. Si el script esta vinculado a la hoja, dejar `SPREADSHEET_ID` vacio.
 6. Ejecutar `setupWorkbook()` una vez para crear cabeceras y configuracion base.
 7. Desplegar como Web App restringida al dominio corporativo.
 

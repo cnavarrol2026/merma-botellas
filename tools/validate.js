@@ -41,7 +41,7 @@ function validateManifest() {
 
 function validateClaspIgnore() {
   const ignore = read('.claspignore');
-  ['!appsscript.json', '!src/', '!src/**', '!src/**/*.gs', '!src/**/*.html'].forEach((line) => {
+  ['!appsscript.json', '!src/', '!src/**/*.gs', '!src/**/*.html'].forEach((line) => {
     assert(ignore.includes(line), '.claspignore no incluye ' + line);
   });
 }
