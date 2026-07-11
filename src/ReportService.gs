@@ -2,7 +2,17 @@ function parseDateFilter_(value, endOfDay) {
   if (!value) {
     return null;
   }
-  const date = new Date(value);
+  const text = normalizeText_(value);
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const localMatch = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  const parts = isoMatch
+    ? [Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3])]
+    : localMatch
+      ? [Number(localMatch[3]), Number(localMatch[2]), Number(localMatch[1])]
+      : null;
+  const date = parts
+    ? new Date(parts[0], parts[1] - 1, parts[2])
+    : new Date(value);
   if (endOfDay) {
     date.setHours(23, 59, 59, 999);
   } else {
@@ -20,7 +30,7 @@ function getReportData(filters) {
     if (row.ESTADO === APP_CONFIG.ESTADOS.ELIMINADO) {
       return false;
     }
-    const fecha = new Date(row.FECHA_HORA);
+    const fecha = row.FECHA_HORA instanceof Date ? row.FECHA_HORA : new Date(row.FECHA_HORA);
     if (desde && fecha < desde) {
       return false;
     }

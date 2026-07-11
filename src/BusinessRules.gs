@@ -5,11 +5,26 @@ function assertRequired_(value, label) {
 }
 
 function assertIntegerAtLeastZero_(value, label) {
-  const numberValue = Number(value);
+  const numberValue = parseIntegerInput_(value);
   if (!Number.isInteger(numberValue) || numberValue < 0) {
     throw new Error(label + ' debe ser un numero entero mayor o igual a cero.');
   }
   return numberValue;
+}
+
+function parseIntegerInput_(value) {
+  if (typeof value === 'number') {
+    return value;
+  }
+  const text = normalizeText_(value);
+  if (text === '') {
+    return NaN;
+  }
+  const clean = text.replace(/\./g, '').replace(/\s/g, '');
+  if (!/^\d+$/.test(clean)) {
+    return NaN;
+  }
+  return Number(clean);
 }
 
 function getFormatosPermitidos_() {

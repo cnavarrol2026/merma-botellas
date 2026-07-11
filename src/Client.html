@@ -39,6 +39,14 @@
     return Number(value || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 });
   }
 
+  function parseIntegerInput(value) {
+    const text = String(value || '').trim();
+    if (!text) return NaN;
+    const clean = text.replace(/\./g, '').replace(/\s/g, '');
+    if (!/^\d+$/.test(clean)) return NaN;
+    return Number(clean);
+  }
+
   function formatDate(value) {
     if (!value) return '';
     const date = new Date(value);
@@ -432,7 +440,7 @@
   });
 
   $('#previewSave').addEventListener('click', () => {
-    const zona1 = Number($('#zona1').value || 0);
+    const zona1 = parseIntegerInput($('#zona1').value);
     const zona5 = Number(state.temp.zona5 || 0);
     if (!Number.isInteger(zona1) || zona1 < 0) {
       toast('Zona 1 debe ser entero mayor o igual a cero.', true);
@@ -458,7 +466,7 @@
     if (state.saving) return;
     state.saving = true;
     try {
-      await callApi('apiSaveRegistro', { zona1: $('#zona1').value });
+      await callApi('apiSaveRegistro', { zona1: parseIntegerInput($('#zona1').value) });
       $('#confirmDialog').close();
       $('#zona1').value = '0';
       state.temp = await callApi('apiGetTempState');
