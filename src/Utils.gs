@@ -45,7 +45,7 @@ function withDocumentLock_(callback) {
 }
 
 function ok_(data) {
-  return { ok: true, data: data || null };
+  return { ok: true, data: serializeForClient_(data || null) };
 }
 
 function fail_(error) {
@@ -53,4 +53,23 @@ function fail_(error) {
     ok: false,
     error: error && error.message ? error.message : String(error)
   };
+}
+
+function serializeForClient_(value) {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  if (Array.isArray(value)) {
+    return value.map(function (item) {
+      return serializeForClient_(item);
+    });
+  }
+  if (value && typeof value === 'object') {
+    const clean = {};
+    Object.keys(value).forEach(function (key) {
+      clean[key] = serializeForClient_(value[key]);
+    });
+    return clean;
+  }
+  return value;
 }
