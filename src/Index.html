@@ -206,6 +206,27 @@
       </form>
     </dialog>
 
+    <dialog id="tempEditDialog">
+      <form method="dialog">
+        <h2>Editar linea</h2>
+        <div class="detail-grid">
+          <label>Codigo produccion
+            <input id="tempEditCodigoProduccion" autocomplete="off">
+          </label>
+          <label>Formato
+            <select id="tempEditFormato"></select>
+          </label>
+          <label>Cajas
+            <input id="tempEditCantidadCajas" type="text" inputmode="numeric">
+          </label>
+        </div>
+        <menu>
+          <button value="cancel" class="secondary">Cancelar</button>
+          <button value="save" id="saveTempEdit">Guardar</button>
+        </menu>
+      </form>
+    </dialog>
+
     <dialog id="deletedDialog">
       <form method="dialog">
         <h2>Registros eliminados</h2>

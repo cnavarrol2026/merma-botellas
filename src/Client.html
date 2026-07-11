@@ -5,7 +5,8 @@
     temp: { items: [], zona5: 0, formatos: [], bloqueo: {} },
     pollingMs: 7000,
     saving: false,
-    currentRecord: null
+    currentRecord: null,
+    currentTempEditId: null
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -112,6 +113,9 @@
 
   function renderFormatos() {
     $('#formato').innerHTML = state.temp.formatos
+      .map((formato) => `<option value="${formato}">${formato}</option>`)
+      .join('');
+    $('#tempEditFormato').innerHTML = state.temp.formatos
       .map((formato) => `<option value="${formato}">${formato}</option>`)
       .join('');
     $('#formatosInput').value = state.temp.formatos.join(',');
@@ -297,19 +301,11 @@
     if (editTemp) {
       const item = state.temp.items.find((line) => line.id === editTemp.dataset.editTemp);
       if (!item) return;
-      const codigoProduccion = prompt('Codigo de produccion', item.codigoProduccion);
-      if (codigoProduccion === null) return;
-      const formato = prompt('Formato', item.formato);
-      if (formato === null) return;
-      const cantidadCajas = prompt('Cantidad de cajas', item.cantidadCajas);
-      if (cantidadCajas === null) return;
-      try {
-        state.temp = await callApi('apiUpdateTempLine', item.id, { codigoProduccion, formato, cantidadCajas });
-        renderTemp();
-        toast('Linea actualizada.');
-      } catch (error) {
-        toast(error.message, true);
-      }
+      state.currentTempEditId = item.id;
+      $('#tempEditCodigoProduccion').value = item.codigoProduccion;
+      $('#tempEditFormato').value = item.formato;
+      $('#tempEditCantidadCajas').value = formatNumber(item.cantidadCajas);
+      $('#tempEditDialog').showModal();
       return;
     }
 
@@ -422,6 +418,24 @@
       $('#cantidadCajas').value = '0';
       renderTemp();
       toast('Linea agregada.');
+    } catch (error) {
+      toast(error.message, true);
+    }
+  });
+
+  $('#saveTempEdit').addEventListener('click', async (event) => {
+    event.preventDefault();
+    if (!state.currentTempEditId) return;
+    try {
+      state.temp = await callApi('apiUpdateTempLine', state.currentTempEditId, {
+        codigoProduccion: $('#tempEditCodigoProduccion').value,
+        formato: $('#tempEditFormato').value,
+        cantidadCajas: parseIntegerInput($('#tempEditCantidadCajas').value)
+      });
+      $('#tempEditDialog').close();
+      state.currentTempEditId = null;
+      renderTemp();
+      toast('Linea actualizada.');
     } catch (error) {
       toast(error.message, true);
     }
