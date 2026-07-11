@@ -36,7 +36,7 @@ function parseClient() {
 function validateManifest() {
   const manifest = JSON.parse(read('appsscript.json'));
   assert(manifest.runtimeVersion === 'V8', 'appsscript.json debe usar runtimeVersion V8.');
-  assert(manifest.webapp && manifest.webapp.access === 'DOMAIN', 'Web App debe quedar restringida a DOMAIN.');
+  assert(manifest.webapp && manifest.webapp.access === 'ANYONE', 'Web App debe permitir usuarios con cuenta Google.');
 }
 
 function validateClaspIgnore() {

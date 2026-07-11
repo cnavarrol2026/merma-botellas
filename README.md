@@ -28,7 +28,7 @@ archivo ignorado por Git para no publicar configuracion local.
 4. Ejecutar `clasp push` cuando `clasp` este autenticado.
 5. Si el script esta vinculado a la hoja, dejar `SPREADSHEET_ID` vacio.
 6. Ejecutar `runSetupWorkbook()` una vez para crear cabeceras y configuracion base.
-7. Desplegar como Web App restringida al dominio corporativo.
+7. Desplegar como Web App para usuarios con cuenta Google.
 
 Ver detalle en `docs/DESPLIEGUE_APPS_SCRIPT.md`.
 

@@ -47,7 +47,7 @@ clasp.cmd push
 1. Ir a Implementar > Nueva implementacion.
 2. Tipo: Aplicacion web.
 3. Ejecutar como: usuario que implementa.
-4. Acceso: usuarios del dominio corporativo.
+4. Acceso: cualquier usuario con cuenta Google.
 5. Copiar URL de despliegue.
 
 ## 6. Smoke test inicial
