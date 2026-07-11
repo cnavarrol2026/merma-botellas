@@ -36,9 +36,13 @@
         <div class="work-grid">
           <section class="panel">
             <h2>Botella</h2>
-            <label>Codigo de botella
-              <select id="botellaSelect"></select>
-            </label>
+            <div class="combo-field">
+              <label>Codigo de botella
+                <input id="botellaSearch" autocomplete="off" placeholder="Escribe codigo o descripcion">
+              </label>
+              <input id="botellaCodigo" type="hidden">
+              <div class="combo-list" id="botellaResults"></div>
+            </div>
           </section>
 
           <section class="panel">

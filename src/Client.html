@@ -57,13 +57,49 @@
   }
 
   function renderBotellas() {
-    const options = ['<option value="">Seleccionar</option>'].concat(
-      state.botellas.map((item) => `<option value="${item.codigo}">${item.codigo} - ${item.descripcion}</option>`)
-    );
-    $('#botellaSelect').innerHTML = options.join('');
+    renderBottleMatches('');
     $('#reportCodigo').innerHTML = '<option value="">Todas</option>' + state.botellas
       .map((item) => `<option value="${item.codigo}">${item.codigo}</option>`)
       .join('');
+  }
+
+  function normalizeSearch(value) {
+    return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function renderBottleMatches(query) {
+    const normalized = normalizeSearch(query);
+    const matches = state.botellas
+      .filter((item) => {
+        const haystack = normalizeSearch(`${item.codigo} ${item.descripcion}`);
+        return !normalized || haystack.includes(normalized);
+      })
+      .slice(0, 12);
+
+    $('#botellaResults').innerHTML = matches.length
+      ? matches.map((item) => `
+        <button type="button" class="combo-option" data-bottle-code="${item.codigo}" data-bottle-label="${item.codigo} - ${item.descripcion}">
+          <strong>${item.codigo}</strong>
+          <span>${item.descripcion}</span>
+        </button>
+      `).join('')
+      : '<div class="combo-option"><span>Sin coincidencias</span></div>';
+  }
+
+  function openBottleResults() {
+    $('#botellaResults').classList.add('is-open');
+  }
+
+  function closeBottleResults() {
+    window.setTimeout(() => $('#botellaResults').classList.remove('is-open'), 120);
+  }
+
+  function selectedBottleCode() {
+    const hidden = $('#botellaCodigo').value;
+    if (hidden) return hidden;
+    const typed = $('#botellaSearch').value.trim();
+    const exact = state.botellas.find((item) => `${item.codigo} - ${item.descripcion}` === typed || item.codigo === typed);
+    return exact ? exact.codigo : typed;
   }
 
   function renderFormatos() {
@@ -296,6 +332,14 @@
       return;
     }
 
+    const bottleOption = event.target.closest('[data-bottle-code]');
+    if (bottleOption) {
+      $('#botellaCodigo').value = bottleOption.dataset.bottleCode;
+      $('#botellaSearch').value = bottleOption.dataset.bottleLabel;
+      $('#botellaResults').classList.remove('is-open');
+      return;
+    }
+
     const openRecord = event.target.closest('[data-open-record]');
     if (openRecord) {
       try {
@@ -319,6 +363,19 @@
   $('#themeToggle').addEventListener('click', () => {
     document.body.classList.toggle('dark');
   });
+
+  $('#botellaSearch').addEventListener('input', () => {
+    $('#botellaCodigo').value = '';
+    renderBottleMatches($('#botellaSearch').value);
+    openBottleResults();
+  });
+
+  $('#botellaSearch').addEventListener('focus', () => {
+    renderBottleMatches($('#botellaSearch').value);
+    openBottleResults();
+  });
+
+  $('#botellaSearch').addEventListener('blur', closeBottleResults);
 
   $('#setupWorkbook').addEventListener('click', async () => {
     try {
@@ -348,7 +405,7 @@
   $('#addLine').addEventListener('click', async () => {
     try {
       state.temp = await callApi('apiAddTempLine', {
-        codigoBotella: $('#botellaSelect').value,
+        codigoBotella: selectedBottleCode(),
         codigoProduccion: $('#codigoProduccion').value,
         formato: $('#formato').value,
         cantidadCajas: $('#cantidadCajas').value
