@@ -1,6 +1,6 @@
 const APP_CONFIG = {
   SPREADSHEET_ID: '',
-  EMPRESA_NOMBRE: 'Empresa',
+  EMPRESA_NOMBRE: 'VSPT Wine Group',
   POLLING_MS: 7000,
   ESTADOS: {
     ACTIVO: 'ACTIVO',

@@ -20,7 +20,10 @@
           }
           resolve(response.data);
         })
-        .withFailureHandler(reject)[name](...args);
+        .withFailureHandler((error) => {
+          const message = error && error.message ? error.message : JSON.stringify(error || {});
+          reject(new Error(message || 'Error desconocido'));
+        })[name](...args);
     });
   }
 
@@ -73,9 +76,6 @@
   function renderTemp() {
     const temp = state.temp;
     $('#zona5').textContent = formatNumber(temp.zona5);
-    $('#lockStatus').textContent = temp.bloqueo && temp.bloqueo.codigo
-      ? `Botella bloqueada: ${temp.bloqueo.codigo} - ${temp.bloqueo.descripcion}`
-      : 'Sin botella bloqueada.';
     $('#tempRows').innerHTML = temp.items.length
       ? temp.items.map((item) => `
         <tr>
@@ -345,19 +345,10 @@
     }
   });
 
-  $('#startBottle').addEventListener('click', async () => {
-    try {
-      state.temp = await callApi('apiStartTempBottle', $('#botellaSelect').value);
-      renderTemp();
-      toast('Botella bloqueada.');
-    } catch (error) {
-      toast(error.message, true);
-    }
-  });
-
   $('#addLine').addEventListener('click', async () => {
     try {
       state.temp = await callApi('apiAddTempLine', {
+        codigoBotella: $('#botellaSelect').value,
         codigoProduccion: $('#codigoProduccion').value,
         formato: $('#formato').value,
         cantidadCajas: $('#cantidadCajas').value

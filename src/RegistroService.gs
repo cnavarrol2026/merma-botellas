@@ -1,12 +1,11 @@
 function saveRegistroFromTemp(payload) {
   return withDocumentLock_(function () {
     const temp = getTempState();
-    if (!temp.bloqueo.codigo) {
-      throw new Error('No existe una merma en curso.');
-    }
     if (!temp.items.length) {
       throw new Error('Agrega al menos una linea de produccion.');
     }
+    const codigoBotella = temp.items[0].codigoBotella;
+    const descripcionBotella = temp.items[0].descripcionBotella;
     const totals = calculateRegistroTotals_(payload.zona1, temp.zona5);
     const idRegistro = createId_('REG');
     const fecha = now_();
@@ -15,8 +14,8 @@ function saveRegistroFromTemp(payload) {
     appendRecord_(SHEETS.REGISTROS_BOTELLAS.name, {
       ID_REGISTRO: idRegistro,
       FECHA_HORA: fecha,
-      CODIGO_BOTELLA: temp.bloqueo.codigo,
-      DESCRIPCION_BOTELLA: temp.bloqueo.descripcion,
+      CODIGO_BOTELLA: codigoBotella,
+      DESCRIPCION_BOTELLA: descripcionBotella,
       ZONA_1: totals.ZONA_1,
       ZONA_5: totals.ZONA_5,
       MERMA: totals.MERMA,

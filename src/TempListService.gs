@@ -64,13 +64,15 @@ function startTempBottle(codigoBotella) {
 
 function addTempLine(payload) {
   return withDocumentLock_(function () {
-    const bloqueo = getConfigValue_(APP_CONFIG.CONFIG_KEYS.BOTELLA_BLOQUEADA);
-    if (!bloqueo) {
-      throw new Error('Selecciona una botella antes de agregar produccion.');
+    const botella = findBotellaActiva_(payload.codigoBotella);
+    const rows = readRows_(SHEETS.LISTA_TEMPORAL.name);
+    const currentBottle = rows.length ? rows[0].CODIGO_BOTELLA : '';
+    if (currentBottle && currentBottle !== botella.CODIGO_BOTELLA) {
+      throw new Error('La lista temporal en curso pertenece a la botella ' + currentBottle + '. Guarda o cancela antes de usar otra botella.');
     }
     assertRequired_(payload.codigoProduccion, 'Codigo de produccion');
     const codigoProduccion = normalizeText_(payload.codigoProduccion);
-    const duplicate = readRows_(SHEETS.LISTA_TEMPORAL.name).some(function (row) {
+    const duplicate = rows.some(function (row) {
       return row.CODIGO_PRODUCCION === codigoProduccion;
     });
     if (duplicate) {
@@ -79,8 +81,8 @@ function addTempLine(payload) {
     const total = calculateLineTotal_(payload.formato, payload.cantidadCajas);
     appendRecord_(SHEETS.LISTA_TEMPORAL.name, {
       ID_TEMPORAL: createId_('TMP'),
-      CODIGO_BOTELLA: bloqueo,
-      DESCRIPCION_BOTELLA: getConfigValue_(APP_CONFIG.CONFIG_KEYS.DESCRIPCION_BLOQUEADA),
+      CODIGO_BOTELLA: botella.CODIGO_BOTELLA,
+      DESCRIPCION_BOTELLA: botella.DESCRIPCION_BOTELLA,
       CODIGO_PRODUCCION: codigoProduccion,
       FORMATO: Number(payload.formato),
       CANTIDAD_CAJAS: Number(payload.cantidadCajas),

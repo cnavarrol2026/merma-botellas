@@ -22,8 +22,8 @@ por lo que se crea una base nueva.
 
 - Concurrencia en lista temporal: usar `LockService` en cada escritura y
   polling liviano para refrescar a todos los usuarios.
-- Bloqueo de botella: persistir bloqueo en `CONFIGURACION` para impedir cambiar
-  botella mientras hay merma activa.
+- Seleccion de botella: la primera linea temporal define la botella de la
+  merma; no se exige un paso manual de bloqueo.
 - Doble envio: validar token/estado en backend y deshabilitar botones en
   frontend durante guardado.
 - Apps Script no es base transaccional real: agrupar operaciones bajo lock,
@@ -78,7 +78,8 @@ Hojas iniciales:
 
 - La aplicacion abre siempre en Registro.
 - El codigo de botella debe existir y estar activo.
-- Solo una botella puede estar en merma activa a la vez.
+- La lista temporal activa solo puede contener una botella; para cambiar de
+  botella se debe guardar o cancelar la merma en curso.
 - El codigo de produccion es obligatorio y no puede repetirse en la lista
   temporal activa.
 - `TOTAL_BOTELLAS = FORMATO * CANTIDAD_CAJAS`.
