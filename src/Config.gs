@@ -1,5 +1,5 @@
 const APP_CONFIG = {
-  SPREADSHEET_ID: '',
+  SPREADSHEET_ID: '1wqC6ZtTZnf1G86NvEuZPzrsrhx6LuYprhJpsIWiUBgs',
   EMPRESA_NOMBRE: 'VSPT Wine Group',
   POLLING_MS: 7000,
   ESTADOS: {
