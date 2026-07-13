@@ -112,12 +112,20 @@
   }
 
   function renderFormatos() {
-    $('#formato').innerHTML = state.temp.formatos
+    const selectedFormato = $('#formato').value;
+    const selectedTempEditFormato = $('#tempEditFormato').value;
+    const formatoValues = state.temp.formatos.map(String);
+    const options = state.temp.formatos
       .map((formato) => `<option value="${formato}">${formato}</option>`)
       .join('');
-    $('#tempEditFormato').innerHTML = state.temp.formatos
-      .map((formato) => `<option value="${formato}">${formato}</option>`)
-      .join('');
+    $('#formato').innerHTML = options;
+    $('#tempEditFormato').innerHTML = options;
+    if (selectedFormato && formatoValues.includes(String(selectedFormato))) {
+      $('#formato').value = selectedFormato;
+    }
+    if (selectedTempEditFormato && formatoValues.includes(String(selectedTempEditFormato))) {
+      $('#tempEditFormato').value = selectedTempEditFormato;
+    }
     $('#formatosInput').value = state.temp.formatos.join(',');
   }
 
