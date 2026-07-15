@@ -151,6 +151,39 @@
     margin-bottom: 10px;
   }
 
+  .inline-kpi {
+    min-width: 190px;
+    padding: 10px 14px;
+    border: 1px solid rgba(15, 118, 110, 0.28);
+    border-radius: 8px;
+    background: rgba(15, 118, 110, 0.09);
+    text-align: right;
+  }
+
+  .inline-kpi span,
+  .inline-kpi small {
+    display: block;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .inline-kpi strong {
+    display: block;
+    margin: 3px 0;
+    color: var(--primary-strong);
+    font-size: 1.65rem;
+    line-height: 1;
+  }
+
+  .inline-kpi strong span {
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    text-transform: none;
+  }
+
   h1,
   h2 {
     margin: 0;
@@ -392,6 +425,11 @@
     .section-head {
       align-items: stretch;
       flex-direction: column;
+    }
+
+    .inline-kpi {
+      text-align: left;
+      width: 100%;
     }
 
     .detail-grid,
