@@ -151,7 +151,24 @@
     margin-bottom: 10px;
   }
 
+  .temp-list-head {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr) 190px;
+    align-items: center;
+  }
+
+  .temp-list-title {
+    grid-column: 2;
+    justify-self: center;
+    padding: 0 14px 8px;
+    border-bottom: 3px solid rgba(15, 118, 110, 0.28);
+    color: var(--text);
+    text-align: center;
+  }
+
   .inline-kpi {
+    grid-column: 3;
+    justify-self: end;
     min-width: 190px;
     padding: 10px 14px;
     border: 1px solid rgba(15, 118, 110, 0.28);
@@ -428,8 +445,18 @@
     }
 
     .inline-kpi {
+      justify-self: stretch;
       text-align: left;
       width: 100%;
+    }
+
+    .temp-list-head {
+      grid-template-columns: 1fr;
+    }
+
+    .temp-list-title {
+      grid-column: 1;
+      justify-self: stretch;
     }
 
     .detail-grid,
