@@ -106,19 +106,32 @@ function updateTempLine(idTemporal, payload) {
     if (!target) {
       throw new Error('No existe la linea temporal.');
     }
+    const botella = findBotellaActiva_(payload.codigoBotella || target.CODIGO_BOTELLA);
     const duplicate = rows.some(function (row) {
       return row.ID_TEMPORAL !== id && row.CODIGO_PRODUCCION === codigoProduccion;
     });
     if (duplicate) {
       throw new Error('El codigo de produccion ya existe en la lista temporal.');
     }
+    const fecha = now_();
+    const correo = currentEmail_();
+    rows.forEach(function (row) {
+      updateRecordByRow_(SHEETS.LISTA_TEMPORAL.name, row._row, {
+        CODIGO_BOTELLA: botella.CODIGO_BOTELLA,
+        DESCRIPCION_BOTELLA: botella.DESCRIPCION_BOTELLA,
+        FECHA_MODIFICACION: fecha,
+        CORREO_MODIFICACION: correo
+      });
+    });
     updateRecordByRow_(SHEETS.LISTA_TEMPORAL.name, target._row, {
+      CODIGO_BOTELLA: botella.CODIGO_BOTELLA,
+      DESCRIPCION_BOTELLA: botella.DESCRIPCION_BOTELLA,
       CODIGO_PRODUCCION: codigoProduccion,
       FORMATO: Number(payload.formato),
       CANTIDAD_CAJAS: Number(payload.cantidadCajas),
       TOTAL_BOTELLAS: calculateLineTotal_(payload.formato, payload.cantidadCajas),
-      FECHA_MODIFICACION: now_(),
-      CORREO_MODIFICACION: currentEmail_()
+      FECHA_MODIFICACION: fecha,
+      CORREO_MODIFICACION: correo
     });
     return getTempState();
   });

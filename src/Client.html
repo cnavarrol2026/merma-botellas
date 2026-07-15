@@ -72,6 +72,20 @@
       .join('');
   }
 
+  function renderBottleSelectOptions(selectedCode) {
+    const hasSelected = state.botellas.some((item) => item.codigo === selectedCode);
+    const fallback = selectedCode && !hasSelected
+      ? `<option value="${selectedCode}">${selectedCode}</option>`
+      : '';
+    return fallback + state.botellas
+      .map((item) => `
+        <option value="${item.codigo}" ${item.codigo === selectedCode ? 'selected' : ''}>
+          ${item.codigo} - ${item.descripcion}
+        </option>
+      `)
+      .join('');
+  }
+
   function normalizeSearch(value) {
     return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   }
@@ -135,6 +149,7 @@
     $('#tempRows').innerHTML = temp.items.length
       ? temp.items.map((item) => `
         <tr>
+          <td>${item.codigoBotella}</td>
           <td>${item.codigoProduccion}</td>
           <td>${item.formato}</td>
           <td>${item.cantidadCajas}</td>
@@ -147,7 +162,7 @@
           </td>
         </tr>
       `).join('')
-      : '<tr><td colspan="5" class="muted">Sin lineas temporales.</td></tr>';
+      : '<tr><td colspan="6" class="muted">Sin lineas temporales.</td></tr>';
   }
 
   function renderCatalogo() {
@@ -310,6 +325,7 @@
       const item = state.temp.items.find((line) => line.id === editTemp.dataset.editTemp);
       if (!item) return;
       state.currentTempEditId = item.id;
+      $('#tempEditCodigoBotella').innerHTML = renderBottleSelectOptions(item.codigoBotella);
       $('#tempEditCodigoProduccion').value = item.codigoProduccion;
       $('#tempEditFormato').value = item.formato;
       $('#tempEditCantidadCajas').value = formatNumber(item.cantidadCajas);
@@ -436,6 +452,7 @@
     if (!state.currentTempEditId) return;
     try {
       state.temp = await callApi('apiUpdateTempLine', state.currentTempEditId, {
+        codigoBotella: $('#tempEditCodigoBotella').value,
         codigoProduccion: $('#tempEditCodigoProduccion').value,
         formato: $('#tempEditFormato').value,
         cantidadCajas: parseIntegerInput($('#tempEditCantidadCajas').value)
