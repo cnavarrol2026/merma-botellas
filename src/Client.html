@@ -179,8 +179,16 @@
   }
 
   function renderCatalogo() {
-    $('#catalogRows').innerHTML = state.catalogoCompleto.length
-      ? state.catalogoCompleto.map((item) => `
+    const query = normalizeSearch($('#catalogSearch') ? $('#catalogSearch').value : '');
+    const rows = state.catalogoCompleto.filter((item) => {
+      const haystack = normalizeSearch(`${item.codigo} ${item.descripcion} ${item.estado}`);
+      return !query || haystack.includes(query);
+    });
+    if ($('#catalogCount')) {
+      $('#catalogCount').textContent = `${rows.length} de ${state.catalogoCompleto.length} botellas`;
+    }
+    $('#catalogRows').innerHTML = rows.length
+      ? rows.map((item) => `
         <tr>
           <td>${item.codigo}</td>
           <td>${item.descripcion}</td>
@@ -195,7 +203,7 @@
           </td>
         </tr>
       `).join('')
-      : '<tr><td colspan="4" class="muted">Sin botellas.</td></tr>';
+      : '<tr><td colspan="4" class="muted">Sin botellas coincidentes.</td></tr>';
   }
 
   function renderDashboard(data) {
@@ -433,6 +441,8 @@
   });
 
   $('#botellaSearch').addEventListener('blur', closeBottleResults);
+
+  $('#catalogSearch').addEventListener('input', renderCatalogo);
 
   $('#setupWorkbook').addEventListener('click', async () => {
     try {

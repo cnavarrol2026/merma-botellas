@@ -337,6 +337,16 @@
     max-width: 220px;
   }
 
+  .catalog-search {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+    margin: 16px 0 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+
   .table-wrap {
     overflow-x: auto;
     border: 1px solid var(--line);
@@ -459,6 +469,10 @@
       justify-self: stretch;
       text-align: left;
       width: 100%;
+    }
+
+    .catalog-search {
+      grid-template-columns: 1fr;
     }
 
     .temp-list-head {
