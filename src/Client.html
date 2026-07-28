@@ -38,6 +38,17 @@
     window.setTimeout(() => el.classList.remove('show'), 3600);
   }
 
+  function setButtonBusy(selector, isBusy, busyText) {
+    const button = $(selector);
+    if (!button) return;
+    if (!button.dataset.defaultText) {
+      button.dataset.defaultText = button.textContent;
+    }
+    button.disabled = isBusy;
+    button.textContent = isBusy ? busyText : button.dataset.defaultText;
+    button.classList.toggle('is-busy', isBusy);
+  }
+
   function formatNumber(value) {
     return Number(value || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 });
   }
@@ -449,6 +460,7 @@
   });
 
   $('#addLine').addEventListener('click', async () => {
+    setButtonBusy('#addLine', true, 'Agregando...');
     try {
       state.temp = await callApi('apiAddTempLine', {
         codigoBotella: selectedBottleCode(),
@@ -462,6 +474,8 @@
       toast('Linea agregada.');
     } catch (error) {
       toast(error.message, true);
+    } finally {
+      setButtonBusy('#addLine', false);
     }
   });
 
@@ -497,14 +511,17 @@
   });
 
   $('#previewSave').addEventListener('click', () => {
+    setButtonBusy('#previewSave', true, 'Preparando...');
     const zona1 = parseIntegerInput($('#zona1').value);
     const zona5 = Number(state.temp.zona5 || 0);
     if (!Number.isInteger(zona1) || zona1 < 0) {
       toast('Zona 1 debe ser entero mayor o igual a cero.', true);
+      setButtonBusy('#previewSave', false);
       return;
     }
     if (zona5 > zona1) {
       toast('Zona 5 no puede ser mayor que Zona 1.', true);
+      setButtonBusy('#previewSave', false);
       return;
     }
     const merma = zona1 - zona5;
@@ -516,12 +533,15 @@
       <p>% de merma: <strong>${formatNumber(pct)}%</strong></p>
     `;
     $('#confirmDialog').showModal();
+    setButtonBusy('#previewSave', false);
   });
 
   $('#saveRegistro').addEventListener('click', async (event) => {
     event.preventDefault();
     if (state.saving) return;
     state.saving = true;
+    setButtonBusy('#saveRegistro', true, 'Guardando...');
+    setButtonBusy('#previewSave', true, 'Guardando...');
     try {
       await callApi('apiSaveRegistro', { zona1: parseIntegerInput($('#zona1').value) });
       $('#confirmDialog').close();
@@ -534,6 +554,8 @@
       toast(error.message, true);
     } finally {
       state.saving = false;
+      setButtonBusy('#saveRegistro', false);
+      setButtonBusy('#previewSave', false);
     }
   });
 

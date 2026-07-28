@@ -103,6 +103,17 @@
     background: var(--primary-strong);
   }
 
+  button:disabled,
+  button.is-busy {
+    cursor: wait;
+    opacity: 0.72;
+  }
+
+  button:disabled:hover,
+  button.is-busy:hover {
+    background: var(--primary);
+  }
+
   button.secondary,
   .tab {
     background: transparent;
