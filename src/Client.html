@@ -3,10 +3,12 @@
     botellas: [],
     catalogoCompleto: [],
     temp: { items: [], zona5: 0, formatos: [], bloqueo: {} },
-    pollingMs: 7000,
+    pollingMs: 30000,
     saving: false,
     currentRecord: null,
-    currentTempEditId: null
+    currentTempEditId: null,
+    tempPollingId: null,
+    tempRefreshInFlight: false
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -271,12 +273,16 @@
   }
 
   async function refreshTemp(silent = true) {
+    if (state.tempRefreshInFlight || document.hidden || !$('#registro').classList.contains('is-active')) return;
+    state.tempRefreshInFlight = true;
     try {
       state.temp = await callApi('apiGetTempState');
       renderTemp();
       renderFormatos();
     } catch (error) {
       if (!silent) toast(error.message, true);
+    } finally {
+      state.tempRefreshInFlight = false;
     }
   }
 
@@ -293,7 +299,10 @@
       renderTemp();
       renderCatalogo();
       renderDashboard(data.dashboard);
-      window.setInterval(() => refreshTemp(true), state.pollingMs);
+      if (state.tempPollingId) {
+        window.clearInterval(state.tempPollingId);
+      }
+      state.tempPollingId = window.setInterval(() => refreshTemp(true), state.pollingMs);
     } catch (error) {
       toast(error.message, true);
     }
@@ -305,6 +314,9 @@
       document.querySelectorAll('.tab, .view').forEach((el) => el.classList.remove('is-active'));
       tab.classList.add('is-active');
       $('#' + tab.dataset.tab).classList.add('is-active');
+      if (tab.dataset.tab === 'registro') {
+        refreshTemp(true);
+      }
       return;
     }
 
@@ -390,6 +402,12 @@
 
   $('#themeToggle').addEventListener('click', () => {
     document.body.classList.toggle('dark');
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      refreshTemp(true);
+    }
   });
 
   $('#botellaSearch').addEventListener('input', () => {

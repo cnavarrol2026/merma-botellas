@@ -27,8 +27,9 @@ function parseIntegerInput_(value) {
   return Number(clean);
 }
 
-function getFormatosPermitidos_() {
-  const row = readRows_(SHEETS.CONFIGURACION.name).find(function (item) {
+function getFormatosPermitidos_(configRows) {
+  const rows = configRows || readRows_(SHEETS.CONFIGURACION.name);
+  const row = rows.find(function (item) {
     return item.CLAVE === APP_CONFIG.CONFIG_KEYS.FORMATOS;
   });
   return parseJsonArray_(row && row.VALOR, [1, 6, 8, 12, 24]).map(Number);

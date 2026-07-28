@@ -19,19 +19,27 @@ function setConfigValue_(key, value) {
   });
 }
 
+function getConfigValueFromRows_(rows, key) {
+  const row = rows.find(function (item) {
+    return item.CLAVE === key;
+  });
+  return row ? row.VALOR : '';
+}
+
 function getTempState() {
   const items = readRows_(SHEETS.LISTA_TEMPORAL.name);
+  const configRows = readRows_(SHEETS.CONFIGURACION.name);
   const zona5 = items.reduce(function (sum, row) {
     return sum + Number(row.TOTAL_BOTELLAS || 0);
   }, 0);
   return {
     bloqueo: {
-      codigo: getConfigValue_(APP_CONFIG.CONFIG_KEYS.BOTELLA_BLOQUEADA),
-      descripcion: getConfigValue_(APP_CONFIG.CONFIG_KEYS.DESCRIPCION_BLOQUEADA),
-      fecha: getConfigValue_(APP_CONFIG.CONFIG_KEYS.BLOQUEO_FECHA),
-      correo: getConfigValue_(APP_CONFIG.CONFIG_KEYS.BLOQUEO_CORREO)
+      codigo: getConfigValueFromRows_(configRows, APP_CONFIG.CONFIG_KEYS.BOTELLA_BLOQUEADA),
+      descripcion: getConfigValueFromRows_(configRows, APP_CONFIG.CONFIG_KEYS.DESCRIPCION_BLOQUEADA),
+      fecha: getConfigValueFromRows_(configRows, APP_CONFIG.CONFIG_KEYS.BLOQUEO_FECHA),
+      correo: getConfigValueFromRows_(configRows, APP_CONFIG.CONFIG_KEYS.BLOQUEO_CORREO)
     },
-    formatos: getFormatosPermitidos_(),
+    formatos: getFormatosPermitidos_(configRows),
     zona5: zona5,
     items: items.map(function (row) {
       return {
