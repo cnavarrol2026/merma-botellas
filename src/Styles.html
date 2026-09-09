@@ -227,17 +227,11 @@
   }
 
   .work-grid,
-  .register-detail-grid,
   .kpi-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
     margin-bottom: 16px;
-  }
-
-  .register-detail-grid {
-    grid-template-columns: minmax(0, 2fr) minmax(320px, 0.8fr);
-    align-items: start;
   }
 
   .panel,
@@ -371,12 +365,28 @@
     max-width: 220px;
   }
 
+  .break-panel {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.8fr) minmax(220px, 1fr) minmax(320px, 1.25fr);
+    align-items: end;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
   .break-panel .section-head {
-    align-items: start;
+    align-items: center;
+    margin-bottom: 0;
+  }
+
+  .break-panel .section-head.compact {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 
   .break-bottle {
-    margin: 0 0 12px;
+    margin: 0;
+    align-self: center;
   }
 
   .break-bottle strong {
@@ -384,7 +394,7 @@
   }
 
   .break-entry {
-    margin-bottom: 12px;
+    margin-bottom: 0;
   }
 
   .break-entry label {
@@ -396,12 +406,20 @@
   }
 
   .break-kpi {
-    min-width: 150px;
+    min-width: 160px;
     padding: 8px 10px;
+    text-align: left;
   }
 
   .break-kpi strong {
     font-size: 1.35rem;
+  }
+
+  .compact-table {
+    align-self: stretch;
+    overflow-x: visible;
+    border: 1px solid var(--line);
+    border-radius: 8px;
   }
 
   .catalog-search {
@@ -427,7 +445,13 @@
   }
 
   .compact-table table {
-    min-width: 360px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .compact-table th,
+  .compact-table td {
+    padding: 8px;
   }
 
   th,
@@ -527,7 +551,6 @@
     }
 
     .work-grid,
-    .register-detail-grid,
     .kpi-grid,
     .chart-grid {
       grid-template-columns: 1fr;
@@ -546,6 +569,10 @@
       justify-self: stretch;
       text-align: left;
       width: 100%;
+    }
+
+    .break-panel {
+      grid-template-columns: 1fr;
     }
 
     .catalog-search {
