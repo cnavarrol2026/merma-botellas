@@ -17,7 +17,7 @@
           <span>Merma de botellas</span>
         </div>
       </div>
-      <nav class="tabs" aria-label="Navegacion principal">
+      <nav class="tabs" aria-label="Navegación principal">
         <button class="tab is-active" data-tab="registro">Registro</button>
         <button class="tab" data-tab="dashboard">Dashboard</button>
         <button class="tab" data-tab="reporte">Reporte</button>
@@ -47,7 +47,7 @@
           </section>
 
           <section class="panel">
-            <h2>Produccion</h2>
+            <h2>Producción</h2>
             <div class="form-row">
               <label>Código producción
                 <input id="codigoProduccion" autocomplete="off">
@@ -63,6 +63,7 @@
           </section>
         </div>
 
+        <div class="register-detail-grid">
         <section class="panel">
           <div class="section-head compact temp-list-head">
             <h2 class="temp-list-title">Lista temporal compartida</h2>
@@ -88,6 +89,37 @@
             </table>
           </div>
         </section>
+
+        <section class="panel break-panel">
+          <div class="section-head compact">
+            <h2>Botellas quebradas</h2>
+            <div class="inline-kpi break-kpi" aria-live="polite">
+              <span>Total quebradas</span>
+              <strong><span id="totalQuebradas">0</span></strong>
+              <small>botellas</small>
+            </div>
+          </div>
+          <p class="muted break-bottle">Botella: <strong id="quebradaBotella">Sin botella seleccionada</strong></p>
+          <div class="form-row break-entry">
+            <label>Cantidad
+              <input id="cantidadQuebrada" type="text" inputmode="numeric" value="0">
+            </label>
+            <button id="addBreak">Agregar</button>
+          </div>
+          <div class="table-wrap compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Botella</th>
+                  <th>Cantidad</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="quebradaRows"></tbody>
+            </table>
+          </div>
+        </section>
+        </div>
 
         <section class="panel">
           <h2>Cierre</h2>
@@ -125,6 +157,7 @@
         <div class="kpi-grid">
           <div class="kpi"><span>Total Zona 1</span><strong id="kpiZona1">0</strong></div>
           <div class="kpi"><span>Total Zona 5</span><strong id="kpiZona5">0</strong></div>
+          <div class="kpi"><span>Botellas quebradas</span><strong id="kpiQuebradas">0</strong></div>
           <div class="kpi"><span>Merma total</span><strong id="kpiMerma">0</strong></div>
           <div class="kpi"><span>% merma</span><strong id="kpiPct">0%</strong></div>
           <div class="kpi"><span>Registros</span><strong id="kpiRegistros">0</strong></div>
@@ -137,6 +170,10 @@
           <section class="panel chart-panel">
             <h2>Concentración por botella</h2>
             <div id="mermaBottleChart" class="chart-box"></div>
+          </section>
+          <section class="panel chart-panel">
+            <h2>Quiebres por botella</h2>
+            <div id="breakBottleChart" class="chart-box"></div>
           </section>
         </div>
       </section>
@@ -180,6 +217,7 @@
                   <th>Descripción</th>
                   <th>Zona 1</th>
                   <th>Zona 5</th>
+                  <th>Quebradas</th>
                   <th>Merma</th>
                   <th>%</th>
                   <th>Acciones</th>
@@ -238,7 +276,7 @@
             </label>
             <button id="saveFormatos">Guardar formatos</button>
           </div>
-          <p class="muted">Separar formatos con coma. Los cambios se validan tambien en backend.</p>
+          <p class="muted">Separar formatos con coma. Los cambios se validan también en backend.</p>
           <button id="setupWorkbook">Crear/verificar hojas base</button>
         </section>
       </section>

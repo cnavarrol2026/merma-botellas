@@ -35,7 +35,7 @@ function seedConfiguracion_() {
     {
       CLAVE: APP_CONFIG.CONFIG_KEYS.BLOQUEO_CORREO,
       VALOR: '',
-      DESCRIPCION: 'Correo que inicio el bloqueo activo'
+      DESCRIPCION: 'Correo que inició el bloqueo activo'
     }
   ];
 

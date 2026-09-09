@@ -49,17 +49,20 @@ function calculateLineTotal_(formato, cantidadCajas) {
   return cleanFormato * cleanCajas;
 }
 
-function calculateRegistroTotals_(zona1, zona5) {
+function calculateRegistroTotals_(zona1, zona5, botellasQuebradas) {
   const cleanZona1 = assertIntegerAtLeastZero_(zona1, 'Zona 1');
   const cleanZona5 = assertIntegerAtLeastZero_(zona5, 'Zona 5');
-  if (cleanZona5 > cleanZona1) {
-    throw new Error('Zona 5 no puede ser mayor que Zona 1.');
+  const cleanQuebradas = assertIntegerAtLeastZero_(botellasQuebradas || 0, 'Botellas quebradas');
+  const baseCalculo = cleanZona1 + cleanQuebradas;
+  if (cleanZona5 > baseCalculo) {
+    throw new Error('Zona 5 no puede ser mayor que Zona 1 más botellas quebradas.');
   }
-  const merma = cleanZona1 - cleanZona5;
-  const porcentaje = cleanZona1 === 0 ? 0 : (merma / cleanZona1) * 100;
+  const merma = baseCalculo - cleanZona5;
+  const porcentaje = baseCalculo === 0 ? 0 : (merma / baseCalculo) * 100;
   return {
     ZONA_1: cleanZona1,
     ZONA_5: cleanZona5,
+    BOTELLAS_QUEBRADAS: cleanQuebradas,
     MERMA: merma,
     PORCENTAJE_MERMA: porcentaje
   };

@@ -13,7 +13,8 @@
     dashboardFilterTimer: null,
     charts: {
       trend: null,
-      bottle: null
+      bottle: null,
+      breakBottle: null
     }
   };
 
@@ -212,6 +213,17 @@
     return exact ? exact.codigo : typed;
   }
 
+  function selectedBottleLabel() {
+    const code = selectedBottleCode();
+    const item = state.botellas.find((row) => row.codigo === code);
+    return item ? `${item.codigo} - ${item.descripcion}` : code;
+  }
+
+  function activeTempBottleCode() {
+    const active = (state.temp.quiebres && state.temp.quiebres[0]) || state.temp.items[0];
+    return active ? active.codigoBotella : '';
+  }
+
   function renderFormatos() {
     const selectedFormato = $('#formato').value;
     const selectedTempEditFormato = $('#tempEditFormato').value;
@@ -233,6 +245,7 @@
   function renderTemp() {
     const temp = state.temp;
     $('#zona5').textContent = formatNumber(temp.zona5);
+    renderBreaks();
     $('#tempRows').innerHTML = temp.items.length
       ? temp.items.map((item) => `
         <tr>
@@ -250,6 +263,29 @@
         </tr>
       `).join('')
       : '<tr><td colspan="6" class="muted">Sin líneas temporales.</td></tr>';
+  }
+
+  function renderBreaks() {
+    const temp = state.temp;
+    const quiebres = temp.quiebres || [];
+    const activeBottle = quiebres[0] || temp.items[0];
+    $('#totalQuebradas').textContent = formatNumber(temp.totalQuebradas || 0);
+    $('#quebradaBotella').textContent = activeBottle
+      ? `${activeBottle.codigoBotella} - ${activeBottle.descripcionBotella}`
+      : selectedBottleLabel() || 'Sin botella seleccionada';
+    $('#quebradaRows').innerHTML = quiebres.length
+      ? quiebres.map((item) => `
+        <tr>
+          <td>${item.codigoBotella}</td>
+          <td>${formatNumber(item.cantidadBotellas)}</td>
+          <td>
+            <div class="row-actions">
+              <button class="danger" data-delete-break="${item.id}">Eliminar</button>
+            </div>
+          </td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="3" class="muted">Sin botellas quebradas.</td></tr>';
   }
 
   function renderCatalogo() {
@@ -284,6 +320,7 @@
     const totals = data.totals;
     $('#kpiZona1').textContent = formatNumber(totals.zona1);
     $('#kpiZona5').textContent = formatNumber(totals.zona5);
+    $('#kpiQuebradas').textContent = formatNumber(totals.botellasQuebradas);
     $('#kpiMerma').textContent = formatNumber(totals.merma);
     $('#kpiPct').textContent = `${formatNumber(totals.porcentajeMerma)}%`;
     $('#kpiRegistros').textContent = formatNumber(totals.cantidadRegistros);
@@ -298,6 +335,9 @@
     if (!state.charts.bottle) {
       state.charts.bottle = echarts.init($('#mermaBottleChart'));
     }
+    if (!state.charts.breakBottle) {
+      state.charts.breakBottle = echarts.init($('#breakBottleChart'));
+    }
     return true;
   }
 
@@ -310,6 +350,10 @@
     const warningColor = cssVar('--warning');
     const trend = data.byDate || [];
     const bottle = (data.grouped || []).slice(0, 10);
+    const brokenBottle = (data.grouped || [])
+      .filter((item) => Number(item.botellasQuebradas || 0) > 0)
+      .sort((a, b) => Number(b.botellasQuebradas || 0) - Number(a.botellasQuebradas || 0))
+      .slice(0, 10);
     const emptyGraphic = {
       type: 'text',
       left: 'center',
@@ -388,12 +432,37 @@
       graphic: bottle.length ? [] : emptyGraphic,
       textStyle: { color: textColor }
     }, { replaceMerge: ['graphic'] });
+
+    state.charts.breakBottle.setOption({
+      color: [warningColor],
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: 130, right: 24, top: 24, bottom: 38 },
+      xAxis: {
+        type: 'value',
+        axisLabel: { color: mutedColor },
+        splitLine: { lineStyle: { color: lineColor } }
+      },
+      yAxis: {
+        type: 'category',
+        data: brokenBottle.map((item) => item.codigoBotella),
+        axisLabel: { color: mutedColor },
+        axisLine: { lineStyle: { color: lineColor } }
+      },
+      series: [{
+        name: 'Botellas quebradas',
+        type: 'bar',
+        data: brokenBottle.map((item) => item.botellasQuebradas)
+      }],
+      graphic: brokenBottle.length ? [] : emptyGraphic,
+      textStyle: { color: textColor }
+    }, { replaceMerge: ['graphic'] });
   }
 
   function renderReport(data) {
     const totals = data.totals;
     $('#reportSummary').textContent =
       `Zona 1: ${formatNumber(totals.zona1)} | Zona 5: ${formatNumber(totals.zona5)} | ` +
+      `Quebradas: ${formatNumber(totals.botellasQuebradas)} | ` +
       `Merma: ${formatNumber(totals.merma)} | %: ${formatNumber(totals.porcentajeMerma)} | ` +
       `Registros: ${formatNumber(totals.cantidadRegistros)}`;
     $('#reportRows').innerHTML = data.rows.length
@@ -406,12 +475,13 @@
           <td>${row.DESCRIPCION_BOTELLA}</td>
           <td>${formatNumber(row.ZONA_1)}</td>
           <td>${formatNumber(row.ZONA_5)}</td>
+          <td>${formatNumber(row.BOTELLAS_QUEBRADAS)}</td>
           <td>${formatNumber(row.MERMA)}</td>
           <td>${formatNumber(row.PORCENTAJE_MERMA)}%</td>
           <td><button data-open-record="${row.ID_REGISTRO}">Abrir</button></td>
         </tr>
       `).join('')
-      : '<tr><td colspan="10" class="muted">Sin resultados.</td></tr>';
+      : '<tr><td colspan="11" class="muted">Sin resultados.</td></tr>';
   }
 
   function renderDetailEditor(item = {}) {
@@ -454,6 +524,9 @@
         <label>Zona 1
           <input id="editZona1" type="number" min="0" step="1" value="${registro.ZONA_1}">
         </label>
+        <label>Botellas quebradas
+          <input id="editBotellasQuebradas" type="text" inputmode="numeric" value="${formatNumber(registro.BOTELLAS_QUEBRADAS)}">
+        </label>
         <label>Motivo
           <input id="editMotivo" placeholder="Motivo obligatorio">
         </label>
@@ -462,6 +535,7 @@
         ${detalles.map(renderDetailEditor).join('')}
       </div>
       <button type="button" id="addEditDetail">Agregar línea</button>
+      <p class="muted">Botellas quebradas: ${formatNumber(registro.BOTELLAS_QUEBRADAS)} registradas.</p>
       <p class="muted">Las líneas quitadas se marcan como ELIMINADO al guardar.</p>
     `;
     $('#recordDialog').showModal();
@@ -561,6 +635,18 @@
       return;
     }
 
+    const deleteBreak = event.target.closest('[data-delete-break]');
+    if (deleteBreak) {
+      try {
+        state.temp = await callApi('apiDeleteTempBreak', deleteBreak.dataset.deleteBreak);
+        renderTemp();
+        toast('Quiebre eliminado.');
+      } catch (error) {
+        toast(error.message, true);
+      }
+      return;
+    }
+
     const editTemp = event.target.closest('[data-edit-temp]');
     if (editTemp) {
       const item = state.temp.items.find((line) => line.id === editTemp.dataset.editTemp);
@@ -606,6 +692,7 @@
       $('#botellaCodigo').value = bottleOption.dataset.bottleCode;
       $('#botellaSearch').value = bottleOption.dataset.bottleLabel;
       $('#botellaResults').classList.remove('is-open');
+      renderBreaks();
       return;
     }
 
@@ -644,6 +731,7 @@
     window.setTimeout(() => {
       if (state.charts.trend) state.charts.trend.resize();
       if (state.charts.bottle) state.charts.bottle.resize();
+      if (state.charts.breakBottle) state.charts.breakBottle.resize();
     }, 80);
   }
 
@@ -687,6 +775,7 @@
   $('#botellaSearch').addEventListener('input', () => {
     $('#botellaCodigo').value = '';
     renderBottleMatches($('#botellaSearch').value);
+    renderBreaks();
     openBottleResults();
   });
 
@@ -744,6 +833,23 @@
     }
   });
 
+  $('#addBreak').addEventListener('click', async () => {
+    setButtonBusy('#addBreak', true, 'Agregando...');
+    try {
+      state.temp = await callApi('apiAddTempBreak', {
+        codigoBotella: selectedBottleCode() || activeTempBottleCode(),
+        cantidadBotellas: $('#cantidadQuebrada').value
+      });
+      $('#cantidadQuebrada').value = '0';
+      renderTemp();
+      toast('Botellas quebradas agregadas.');
+    } catch (error) {
+      toast(error.message, true);
+    } finally {
+      setButtonBusy('#addBreak', false);
+    }
+  });
+
   $('#saveTempEdit').addEventListener('click', async (event) => {
     event.preventDefault();
     if (!state.currentTempEditId) return;
@@ -764,10 +870,11 @@
   });
 
   $('#cancelTemp').addEventListener('click', async () => {
-    if (!confirm('Cancelar la merma en curso limpiara la lista temporal.')) return;
+    if (!confirm('Cancelar la merma en curso limpiará la lista temporal.')) return;
     try {
       state.temp = await callApi('apiCancelTempList');
       $('#zona1').value = '0';
+      $('#cantidadQuebrada').value = '0';
       renderTemp();
       toast('Merma cancelada.');
     } catch (error) {
@@ -779,21 +886,24 @@
     setButtonBusy('#previewSave', true, 'Preparando...');
     const zona1 = parseIntegerInput($('#zona1').value);
     const zona5 = Number(state.temp.zona5 || 0);
+    const botellasQuebradas = Number(state.temp.totalQuebradas || 0);
+    const baseCalculo = zona1 + botellasQuebradas;
     if (!Number.isInteger(zona1) || zona1 < 0) {
       toast('Zona 1 debe ser un entero mayor o igual a cero.', true);
       setButtonBusy('#previewSave', false);
       return;
     }
-    if (zona5 > zona1) {
-      toast('Zona 5 no puede ser mayor que Zona 1.', true);
+    if (zona5 > baseCalculo) {
+      toast('Zona 5 no puede ser mayor que Zona 1 más botellas quebradas.', true);
       setButtonBusy('#previewSave', false);
       return;
     }
-    const merma = zona1 - zona5;
-    const pct = zona1 === 0 ? 0 : (merma / zona1) * 100;
+    const merma = baseCalculo - zona5;
+    const pct = baseCalculo === 0 ? 0 : (merma / baseCalculo) * 100;
     $('#confirmBody').innerHTML = `
       <p>Zona 1: <strong>${formatNumber(zona1)}</strong></p>
       <p>Zona 5: <strong>${formatNumber(zona5)}</strong></p>
+      <p>Botellas quebradas: <strong>${formatNumber(botellasQuebradas)}</strong></p>
       <p>Merma: <strong>${formatNumber(merma)}</strong></p>
       <p>% de merma: <strong>${formatNumber(pct)}%</strong></p>
     `;
@@ -811,6 +921,7 @@
       await callApi('apiSaveRegistro', { zona1: parseIntegerInput($('#zona1').value) });
       $('#confirmDialog').close();
       $('#zona1').value = '0';
+      $('#cantidadQuebrada').value = '0';
       state.temp = await callApi('apiGetTempState');
       renderTemp();
       renderDashboard(await callApi('apiGetDashboard', {}));
@@ -890,12 +1001,8 @@
       await callApi('apiDeleteRegistro', state.currentRecord.registro.ID_REGISTRO, motivo);
       $('#recordDialog').close();
       toast('Registro eliminado.');
-      renderReport(await callApi('apiGetReport', {
-        desde: $('#reportDesde').value,
-        hasta: $('#reportHasta').value,
-        codigoBotella: $('#reportCodigo').value
-      }));
-      renderDashboard(await callApi('apiGetDashboard', {}));
+      await loadReportDataFromFilters();
+      await loadDashboardDataFromFilters();
     } catch (error) {
       toast(error.message, true);
     }
@@ -915,17 +1022,14 @@
         idRegistro: state.currentRecord.registro.ID_REGISTRO,
         codigoBotella: $('#editCodigoBotella').value,
         zona1: $('#editZona1').value,
+        botellasQuebradas: parseIntegerInput($('#editBotellasQuebradas').value),
         motivo: $('#editMotivo').value,
         detalles
       });
       $('#recordDialog').close();
       toast('Registro modificado.');
-      renderReport(await callApi('apiGetReport', {
-        desde: $('#reportDesde').value,
-        hasta: $('#reportHasta').value,
-        codigoBotella: $('#reportCodigo').value
-      }));
-      renderDashboard(await callApi('apiGetDashboard', {}));
+      await loadReportDataFromFilters();
+      await loadDashboardDataFromFilters();
     } catch (error) {
       toast(error.message, true);
     }

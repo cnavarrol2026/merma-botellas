@@ -97,6 +97,22 @@ function apiDeleteTempLine(idTemporal) {
   }
 }
 
+function apiAddTempBreak(payload) {
+  try {
+    return ok_(addTempBreak(payload || {}));
+  } catch (error) {
+    return fail_(error);
+  }
+}
+
+function apiDeleteTempBreak(idQuiebreTemporal) {
+  try {
+    return ok_(deleteTempBreak(idQuiebreTemporal));
+  } catch (error) {
+    return fail_(error);
+  }
+}
+
 function apiCancelTempList() {
   try {
     return ok_(cancelTempList());

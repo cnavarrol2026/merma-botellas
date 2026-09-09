@@ -6,10 +6,12 @@ function saveRegistroFromTemp(payload) {
     }
     const codigoBotella = temp.items[0].codigoBotella;
     const descripcionBotella = temp.items[0].descripcionBotella;
-    const totals = calculateRegistroTotals_(payload.zona1, temp.zona5);
+    const totals = calculateRegistroTotals_(payload.zona1, temp.zona5, temp.totalQuebradas);
     const idRegistro = createId_('REG');
     const fecha = now_();
     const correo = currentEmail_();
+    ensureSheet_(SHEETS.REGISTROS_BOTELLAS);
+    ensureSheet_(SHEETS.DETALLE_QUIEBRES);
 
     appendRecord_(SHEETS.REGISTROS_BOTELLAS.name, {
       ID_REGISTRO: idRegistro,
@@ -30,7 +32,8 @@ function saveRegistroFromTemp(payload) {
       MOTIVO_ELIMINACION: '',
       FECHA_RESTAURACION: '',
       CORREO_RESTAURACION: '',
-      MOTIVO_RESTAURACION: ''
+      MOTIVO_RESTAURACION: '',
+      BOTELLAS_QUEBRADAS: totals.BOTELLAS_QUEBRADAS
     });
 
     appendRecords_(SHEETS.DETALLE_PRODUCCION.name, temp.items.map(function (item) {
@@ -41,6 +44,28 @@ function saveRegistroFromTemp(payload) {
         FORMATO: item.formato,
         CANTIDAD_CAJAS: item.cantidadCajas,
         TOTAL_BOTELLAS: item.totalBotellas,
+        ESTADO: APP_CONFIG.ESTADOS.ACTIVO,
+        FECHA_CREACION: fecha,
+        CORREO_CREACION: correo,
+        FECHA_MODIFICACION: '',
+        CORREO_MODIFICACION: '',
+        MOTIVO_MODIFICACION: '',
+        FECHA_ELIMINACION: '',
+        CORREO_ELIMINACION: '',
+        MOTIVO_ELIMINACION: '',
+        FECHA_RESTAURACION: '',
+        CORREO_RESTAURACION: '',
+        MOTIVO_RESTAURACION: ''
+      };
+    }));
+
+    appendRecords_(SHEETS.DETALLE_QUIEBRES.name, temp.quiebres.map(function (item) {
+      return {
+        ID_QUIEBRE: createId_('QBR'),
+        ID_REGISTRO: idRegistro,
+        CODIGO_BOTELLA: item.codigoBotella,
+        DESCRIPCION_BOTELLA: item.descripcionBotella,
+        CANTIDAD_BOTELLAS: item.cantidadBotellas,
         ESTADO: APP_CONFIG.ESTADOS.ACTIVO,
         FECHA_CREACION: fecha,
         CORREO_CREACION: correo,
@@ -73,7 +98,11 @@ function getRegistroById(idRegistro) {
   const detalles = readRows_(SHEETS.DETALLE_PRODUCCION.name).filter(function (row) {
     return row.ID_REGISTRO === id;
   });
-  return { registro: registro, detalles: detalles };
+  ensureSheet_(SHEETS.DETALLE_QUIEBRES);
+  const quiebres = readRows_(SHEETS.DETALLE_QUIEBRES.name).filter(function (row) {
+    return row.ID_REGISTRO === id;
+  });
+  return { registro: registro, detalles: detalles, quiebres: quiebres };
 }
 
 function deleteRegistro(idRegistro, motivo) {
@@ -90,6 +119,14 @@ function deleteRegistro(idRegistro, motivo) {
     });
     found.detalles.forEach(function (detalle) {
       updateRecordByRow_(SHEETS.DETALLE_PRODUCCION.name, detalle._row, {
+        ESTADO: APP_CONFIG.ESTADOS.ELIMINADO,
+        FECHA_ELIMINACION: fecha,
+        CORREO_ELIMINACION: correo,
+        MOTIVO_ELIMINACION: cleanMotivo
+      });
+    });
+    found.quiebres.forEach(function (quiebre) {
+      updateRecordByRow_(SHEETS.DETALLE_QUIEBRES.name, quiebre._row, {
         ESTADO: APP_CONFIG.ESTADOS.ELIMINADO,
         FECHA_ELIMINACION: fecha,
         CORREO_ELIMINACION: correo,
@@ -115,6 +152,14 @@ function restoreRegistro(idRegistro, motivo) {
     });
     found.detalles.forEach(function (detalle) {
       updateRecordByRow_(SHEETS.DETALLE_PRODUCCION.name, detalle._row, {
+        ESTADO: APP_CONFIG.ESTADOS.ACTIVO,
+        FECHA_RESTAURACION: fecha,
+        CORREO_RESTAURACION: correo,
+        MOTIVO_RESTAURACION: cleanMotivo
+      });
+    });
+    found.quiebres.forEach(function (quiebre) {
+      updateRecordByRow_(SHEETS.DETALLE_QUIEBRES.name, quiebre._row, {
         ESTADO: APP_CONFIG.ESTADOS.ACTIVO,
         FECHA_RESTAURACION: fecha,
         CORREO_RESTAURACION: correo,
@@ -160,13 +205,17 @@ function updateRegistro(payload) {
     const zona5 = normalizedDetails.reduce(function (sum, item) {
       return sum + item.totalBotellas;
     }, 0);
-    const totals = calculateRegistroTotals_(payload.zona1, zona5);
+    const botellasQuebradas = Object.prototype.hasOwnProperty.call(payload, 'botellasQuebradas')
+      ? payload.botellasQuebradas
+      : found.registro.BOTELLAS_QUEBRADAS || 0;
+    const totals = calculateRegistroTotals_(payload.zona1, zona5, botellasQuebradas);
 
     updateRecordByRow_(SHEETS.REGISTROS_BOTELLAS.name, found.registro._row, {
       CODIGO_BOTELLA: botella.CODIGO_BOTELLA,
       DESCRIPCION_BOTELLA: botella.DESCRIPCION_BOTELLA,
       ZONA_1: totals.ZONA_1,
       ZONA_5: totals.ZONA_5,
+      BOTELLAS_QUEBRADAS: totals.BOTELLAS_QUEBRADAS,
       MERMA: totals.MERMA,
       PORCENTAJE_MERMA: totals.PORCENTAJE_MERMA,
       FECHA_MODIFICACION: fecha,

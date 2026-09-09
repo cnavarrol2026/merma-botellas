@@ -116,10 +116,12 @@ function buildReportSummary_(rows) {
   const totals = rows.reduce(function (acc, row) {
     acc.zona1 += Number(row.ZONA_1 || 0);
     acc.zona5 += Number(row.ZONA_5 || 0);
+    acc.botellasQuebradas += Number(row.BOTELLAS_QUEBRADAS || 0);
     acc.merma += Number(row.MERMA || 0);
     return acc;
-  }, { zona1: 0, zona5: 0, merma: 0 });
-  totals.porcentajeMerma = totals.zona1 === 0 ? 0 : (totals.merma / totals.zona1) * 100;
+  }, { zona1: 0, zona5: 0, botellasQuebradas: 0, merma: 0 });
+  const totalBase = totals.zona1 + totals.botellasQuebradas;
+  totals.porcentajeMerma = totalBase === 0 ? 0 : (totals.merma / totalBase) * 100;
   totals.cantidadRegistros = rows.length;
 
   const grouped = {};
@@ -140,12 +142,14 @@ function buildReportSummary_(rows) {
         descripcionBotella: row.DESCRIPCION_BOTELLA,
         zona1: 0,
         zona5: 0,
+        botellasQuebradas: 0,
         merma: 0,
         cantidadRegistros: 0
       };
     }
     grouped[key].zona1 += Number(row.ZONA_1 || 0);
     grouped[key].zona5 += Number(row.ZONA_5 || 0);
+    grouped[key].botellasQuebradas += Number(row.BOTELLAS_QUEBRADAS || 0);
     grouped[key].merma += Number(row.MERMA || 0);
     grouped[key].cantidadRegistros += 1;
 
@@ -156,12 +160,14 @@ function buildReportSummary_(rows) {
         fecha: dateKey,
         zona1: 0,
         zona5: 0,
+        botellasQuebradas: 0,
         merma: 0,
         cantidadRegistros: 0
       };
     }
     byDate[dateKey].zona1 += Number(row.ZONA_1 || 0);
     byDate[dateKey].zona5 += Number(row.ZONA_5 || 0);
+    byDate[dateKey].botellasQuebradas += Number(row.BOTELLAS_QUEBRADAS || 0);
     byDate[dateKey].merma += Number(row.MERMA || 0);
     byDate[dateKey].cantidadRegistros += 1;
   });
@@ -171,12 +177,14 @@ function buildReportSummary_(rows) {
     rows: rowsWithWeek,
     grouped: Object.keys(grouped).map(function (key) {
       const item = grouped[key];
-      item.porcentajeMerma = item.zona1 === 0 ? 0 : (item.merma / item.zona1) * 100;
+      const itemBase = item.zona1 + item.botellasQuebradas;
+      item.porcentajeMerma = itemBase === 0 ? 0 : (item.merma / itemBase) * 100;
       return item;
     }).sort(function (a, b) { return b.merma - a.merma; }),
     byDate: Object.keys(byDate).sort().map(function (key) {
       const item = byDate[key];
-      item.porcentajeMerma = item.zona1 === 0 ? 0 : (item.merma / item.zona1) * 100;
+      const itemBase = item.zona1 + item.botellasQuebradas;
+      item.porcentajeMerma = itemBase === 0 ? 0 : (item.merma / itemBase) * 100;
       return item;
     })
   };
