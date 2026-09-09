@@ -363,7 +363,7 @@
       ],
       graphic: trend.length ? [] : emptyGraphic,
       textStyle: { color: textColor }
-    });
+    }, { replaceMerge: ['graphic'] });
 
     state.charts.bottle.setOption({
       color: [primaryColor],
@@ -387,7 +387,7 @@
       }],
       graphic: bottle.length ? [] : emptyGraphic,
       textStyle: { color: textColor }
-    });
+    }, { replaceMerge: ['graphic'] });
   }
 
   function renderReport(data) {
