@@ -20,12 +20,12 @@ function seedConfiguracion_() {
     {
       CLAVE: APP_CONFIG.CONFIG_KEYS.BOTELLA_BLOQUEADA,
       VALOR: '',
-      DESCRIPCION: 'Codigo de botella bloqueado por merma activa'
+      DESCRIPCION: 'Código de botella bloqueado por merma activa'
     },
     {
       CLAVE: APP_CONFIG.CONFIG_KEYS.DESCRIPCION_BLOQUEADA,
       VALOR: '',
-      DESCRIPCION: 'Descripcion de botella bloqueada por merma activa'
+      DESCRIPCION: 'Descripción de botella bloqueada por merma activa'
     },
     {
       CLAVE: APP_CONFIG.CONFIG_KEYS.BLOQUEO_FECHA,

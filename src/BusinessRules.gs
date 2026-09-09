@@ -7,7 +7,7 @@ function assertRequired_(value, label) {
 function assertIntegerAtLeastZero_(value, label) {
   const numberValue = parseIntegerInput_(value);
   if (!Number.isInteger(numberValue) || numberValue < 0) {
-    throw new Error(label + ' debe ser un numero entero mayor o igual a cero.');
+    throw new Error(label + ' debe ser un número entero mayor o igual a cero.');
   }
   return numberValue;
 }

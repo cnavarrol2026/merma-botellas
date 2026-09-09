@@ -19,15 +19,15 @@ function findBotellaActiva_(codigo) {
     return item.CODIGO_BOTELLA === cleanCodigo && item.ESTADO === APP_CONFIG.ESTADOS.ACTIVO;
   });
   if (!row) {
-    throw new Error('La botella no existe o esta inactiva: ' + cleanCodigo);
+    throw new Error('La botella no existe o está inactiva: ' + cleanCodigo);
   }
   return row;
 }
 
 function saveBotella(payload) {
   return withDocumentLock_(function () {
-    assertRequired_(payload.codigo, 'Codigo de botella');
-    assertRequired_(payload.descripcion, 'Descripcion de botella');
+    assertRequired_(payload.codigo, 'Código de botella');
+    assertRequired_(payload.descripcion, 'Descripción de botella');
     const codigo = normalizeText_(payload.codigo);
     const descripcion = normalizeText_(payload.descripcion);
     const rows = readRows_(SHEETS.CATALOGO_BOTELLAS.name);

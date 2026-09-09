@@ -2,7 +2,7 @@ function saveRegistroFromTemp(payload) {
   return withDocumentLock_(function () {
     const temp = getTempState();
     if (!temp.items.length) {
-      throw new Error('Agrega al menos una linea de produccion.');
+      throw new Error('Agrega al menos una línea de producción.');
     }
     const codigoBotella = temp.items[0].codigoBotella;
     const descripcionBotella = temp.items[0].descripcionBotella;
@@ -135,11 +135,11 @@ function updateRegistro(payload) {
     const correo = currentEmail_();
     const submittedDetails = payload.detalles || [];
     if (!submittedDetails.length) {
-      throw new Error('El registro debe mantener al menos una linea de detalle activa.');
+      throw new Error('El registro debe mantener al menos una línea de detalle activa.');
     }
 
     const normalizedDetails = submittedDetails.map(function (item) {
-      assertRequired_(item.codigoProduccion, 'Codigo de produccion');
+      assertRequired_(item.codigoProduccion, 'Código de producción');
       return {
         idDetalle: normalizeText_(item.idDetalle),
         codigoProduccion: normalizeText_(item.codigoProduccion),
@@ -152,7 +152,7 @@ function updateRegistro(payload) {
     const codes = {};
     normalizedDetails.forEach(function (item) {
       if (codes[item.codigoProduccion]) {
-        throw new Error('No se puede repetir codigo de produccion en el detalle.');
+        throw new Error('No se puede repetir código de producción en el detalle.');
       }
       codes[item.codigoProduccion] = true;
     });

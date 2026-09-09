@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Merma de Botellas</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <?!= include('src/Styles'); ?>
   </head>
   <body>
@@ -20,8 +21,8 @@
         <button class="tab is-active" data-tab="registro">Registro</button>
         <button class="tab" data-tab="dashboard">Dashboard</button>
         <button class="tab" data-tab="reporte">Reporte</button>
-        <button class="tab" data-tab="catalogo">Catalogo</button>
-        <button class="tab" data-tab="configuracion">Configuracion</button>
+        <button class="tab" data-tab="catalogo">Catálogo</button>
+        <button class="tab" data-tab="configuracion">Configuración</button>
       </nav>
       <button class="icon-button" id="themeToggle" title="Cambiar tema">◐</button>
     </header>
@@ -37,8 +38,8 @@
           <section class="panel">
             <h2>Botella</h2>
             <div class="combo-field">
-              <label>Codigo de botella
-                <input id="botellaSearch" autocomplete="off" placeholder="Escribe codigo o descripcion">
+              <label>Código de botella
+                <input id="botellaSearch" autocomplete="off" placeholder="Escribe código o descripción">
               </label>
               <input id="botellaCodigo" type="hidden">
               <div class="combo-list" id="botellaResults"></div>
@@ -48,7 +49,7 @@
           <section class="panel">
             <h2>Produccion</h2>
             <div class="form-row">
-              <label>Codigo produccion
+              <label>Código producción
                 <input id="codigoProduccion" autocomplete="off">
               </label>
               <label>Formato
@@ -58,7 +59,7 @@
                 <input id="cantidadCajas" type="number" min="0" step="1" value="0">
               </label>
             </div>
-            <button id="addLine">Agregar linea</button>
+            <button id="addLine">Agregar línea</button>
           </section>
         </div>
 
@@ -75,8 +76,8 @@
             <table>
               <thead>
                 <tr>
-                  <th>Codigo botella</th>
-                  <th>Codigo produccion</th>
+                  <th>Código botella</th>
+                  <th>Código producción</th>
                   <th>Formato</th>
                   <th>Cajas</th>
                   <th>Total</th>
@@ -102,9 +103,22 @@
       <section id="dashboard" class="view">
         <div class="section-head">
           <h1>Dashboard</h1>
-          <div class="filters">
-            <input id="dashDesde" type="date">
-            <input id="dashHasta" type="date">
+          <div class="filters report-filters">
+            <label>Desde
+              <input id="dashDesde" type="date">
+            </label>
+            <label>Hasta
+              <input id="dashHasta" type="date">
+            </label>
+            <label>Año
+              <input id="dashSemanaAnio" type="number" min="2000" max="2100" step="1">
+            </label>
+            <label>Semana desde
+              <input id="dashSemanaDesde" type="number" min="1" max="53" step="1">
+            </label>
+            <label>Semana hasta
+              <input id="dashSemanaHasta" type="number" min="1" max="53" step="1">
+            </label>
             <button id="loadDashboard">Actualizar</button>
           </div>
         </div>
@@ -115,14 +129,37 @@
           <div class="kpi"><span>% merma</span><strong id="kpiPct">0%</strong></div>
           <div class="kpi"><span>Registros</span><strong id="kpiRegistros">0</strong></div>
         </div>
+        <div class="chart-grid">
+          <section class="panel chart-panel">
+            <h2>Variabilidad de merma</h2>
+            <div id="mermaTrendChart" class="chart-box"></div>
+          </section>
+          <section class="panel chart-panel">
+            <h2>Concentración por botella</h2>
+            <div id="mermaBottleChart" class="chart-box"></div>
+          </section>
+        </div>
       </section>
 
       <section id="reporte" class="view">
         <div class="section-head">
           <h1>Reporte</h1>
-          <div class="filters">
-            <input id="reportDesde" type="date">
-            <input id="reportHasta" type="date">
+          <div class="filters report-filters">
+            <label>Desde
+              <input id="reportDesde" type="date">
+            </label>
+            <label>Hasta
+              <input id="reportHasta" type="date">
+            </label>
+            <label>Año
+              <input id="reportSemanaAnio" type="number" min="2000" max="2100" step="1">
+            </label>
+            <label>Semana desde
+              <input id="reportSemanaDesde" type="number" min="1" max="53" step="1">
+            </label>
+            <label>Semana hasta
+              <input id="reportSemanaHasta" type="number" min="1" max="53" step="1">
+            </label>
             <select id="reportCodigo"></select>
             <button id="loadReport">Buscar</button>
             <button id="printReport">PDF</button>
@@ -136,10 +173,11 @@
             <table>
               <thead>
                 <tr>
+                  <th>Semana</th>
                   <th>Fecha</th>
                   <th>Hora</th>
-                  <th>Codigo</th>
-                  <th>Descripcion</th>
+                  <th>Código</th>
+                  <th>Descripción</th>
                   <th>Zona 1</th>
                   <th>Zona 5</th>
                   <th>Merma</th>
@@ -155,21 +193,21 @@
 
       <section id="catalogo" class="view">
         <div class="section-head">
-          <h1>Catalogo</h1>
+          <h1>Catálogo</h1>
         </div>
         <section class="panel">
           <div class="form-row">
-            <label>Codigo
+            <label>Código
               <input id="catalogCodigo">
             </label>
-            <label>Descripcion
+            <label>Descripción
               <input id="catalogDescripcion">
             </label>
             <button id="saveBottle">Guardar botella</button>
           </div>
           <div class="catalog-search">
-            <label>Buscar en catalogo
-              <input id="catalogSearch" autocomplete="off" placeholder="Escribe codigo o descripcion">
+            <label>Buscar en catálogo
+              <input id="catalogSearch" autocomplete="off" placeholder="Escribe código o descripción">
             </label>
             <span id="catalogCount" class="muted">0 botellas</span>
           </div>
@@ -177,8 +215,8 @@
             <table>
               <thead>
                 <tr>
-                  <th>Codigo</th>
-                  <th>Descripcion</th>
+                  <th>Código</th>
+                  <th>Descripción</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
@@ -191,7 +229,7 @@
 
       <section id="configuracion" class="view">
         <div class="section-head">
-          <h1>Configuracion</h1>
+          <h1>Configuración</h1>
         </div>
         <section class="panel">
           <div class="form-row">
@@ -208,7 +246,7 @@
 
     <dialog id="confirmDialog">
       <form method="dialog">
-        <h2>Confirmacion final</h2>
+        <h2>Confirmación final</h2>
         <div id="confirmBody"></div>
         <menu>
           <button value="cancel" class="secondary">Volver</button>
@@ -219,12 +257,12 @@
 
     <dialog id="tempEditDialog">
       <form method="dialog">
-        <h2>Editar linea</h2>
+        <h2>Editar línea</h2>
         <div class="detail-grid">
-          <label>Codigo botella
+          <label>Código botella
             <select id="tempEditCodigoBotella"></select>
           </label>
-          <label>Codigo produccion
+          <label>Código producción
             <input id="tempEditCodigoProduccion" autocomplete="off">
           </label>
           <label>Formato
@@ -248,8 +286,8 @@
           <table>
             <thead>
               <tr>
-                <th>Fecha eliminacion</th>
-                <th>Codigo</th>
+                <th>Fecha eliminación</th>
+                <th>Código</th>
                 <th>Zona 1</th>
                 <th>Zona 5</th>
                 <th>Acciones</th>
@@ -271,7 +309,7 @@
         <menu>
           <button value="close" class="secondary">Cerrar</button>
           <button value="delete" class="danger" id="deleteRegistro">Eliminar</button>
-          <button value="save" id="updateRegistro">Guardar modificacion</button>
+          <button value="save" id="updateRegistro">Guardar modificación</button>
         </menu>
       </form>
     </dialog>

@@ -8,7 +8,13 @@
     currentRecord: null,
     currentTempEditId: null,
     tempPollingId: null,
-    tempRefreshInFlight: false
+    tempRefreshInFlight: false,
+    reportFilterTimer: null,
+    dashboardFilterTimer: null,
+    charts: {
+      trend: null,
+      bottle: null
+    }
   };
 
   const $ = (selector) => document.querySelector(selector);
@@ -63,6 +69,11 @@
 
   function formatDate(value) {
     if (!value) return '';
+    const text = String(value);
+    const localMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (localMatch) {
+      return new Date(Number(localMatch[1]), Number(localMatch[2]) - 1, Number(localMatch[3])).toLocaleDateString('es-CL');
+    }
     const date = new Date(value);
     return date.toLocaleDateString('es-CL');
   }
@@ -71,6 +82,69 @@
     if (!value) return '';
     const date = new Date(value);
     return date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function cssVar(name) {
+    return getComputedStyle(document.body).getPropertyValue(name).trim();
+  }
+
+  function currentYear() {
+    return new Date().getFullYear();
+  }
+
+  function openDatePicker(input) {
+    if (input && typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+      } catch (error) {
+        // The native picker can only open from a direct user action in some browsers.
+      }
+    }
+  }
+
+  function normalizeWeekRange(prefix) {
+    const from = $('#' + prefix + 'SemanaDesde');
+    const to = $('#' + prefix + 'SemanaHasta');
+    const year = $('#' + prefix + 'SemanaAnio');
+    if (!year.value) year.value = String(currentYear());
+    if (from.value && !to.value) to.value = from.value;
+    if (from.value && to.value && Number(to.value) < Number(from.value)) {
+      to.value = from.value;
+    }
+  }
+
+  function clearWeekFilters(prefix) {
+    $('#' + prefix + 'SemanaDesde').value = '';
+    $('#' + prefix + 'SemanaHasta').value = '';
+  }
+
+  function clearDateFilters(prefix) {
+    $('#' + prefix + 'Desde').value = '';
+    $('#' + prefix + 'Hasta').value = '';
+  }
+
+  function hasWeekFilters(prefix) {
+    return Boolean($('#' + prefix + 'SemanaDesde').value || $('#' + prefix + 'SemanaHasta').value);
+  }
+
+  function buildFilters(prefix, includeBottle) {
+    normalizeWeekRange(prefix);
+    const filters = {
+      desde: $('#' + prefix + 'Desde').value,
+      hasta: $('#' + prefix + 'Hasta').value,
+      semanaAnio: $('#' + prefix + 'SemanaAnio').value,
+      semanaDesde: $('#' + prefix + 'SemanaDesde').value,
+      semanaHasta: $('#' + prefix + 'SemanaHasta').value
+    };
+    if (includeBottle) {
+      filters.codigoBotella = $('#reportCodigo').value;
+    }
+    return filters;
+  }
+
+  function debounceFilter(key, callback) {
+    if (state[key]) window.clearTimeout(state[key]);
+    state[key] = window.setTimeout(callback, 650);
   }
 
   function setThemeAuto() {
@@ -175,7 +249,7 @@
           </td>
         </tr>
       `).join('')
-      : '<tr><td colspan="6" class="muted">Sin lineas temporales.</td></tr>';
+      : '<tr><td colspan="6" class="muted">Sin líneas temporales.</td></tr>';
   }
 
   function renderCatalogo() {
@@ -213,6 +287,107 @@
     $('#kpiMerma').textContent = formatNumber(totals.merma);
     $('#kpiPct').textContent = `${formatNumber(totals.porcentajeMerma)}%`;
     $('#kpiRegistros').textContent = formatNumber(totals.cantidadRegistros);
+    renderDashboardCharts(data);
+  }
+
+  function ensureDashboardCharts() {
+    if (!window.echarts) return false;
+    if (!state.charts.trend) {
+      state.charts.trend = echarts.init($('#mermaTrendChart'));
+    }
+    if (!state.charts.bottle) {
+      state.charts.bottle = echarts.init($('#mermaBottleChart'));
+    }
+    return true;
+  }
+
+  function renderDashboardCharts(data) {
+    if (!ensureDashboardCharts()) return;
+    const textColor = cssVar('--text');
+    const mutedColor = cssVar('--muted');
+    const lineColor = cssVar('--line');
+    const primaryColor = cssVar('--primary');
+    const warningColor = cssVar('--warning');
+    const trend = data.byDate || [];
+    const bottle = (data.grouped || []).slice(0, 10);
+    const emptyGraphic = {
+      type: 'text',
+      left: 'center',
+      top: 'middle',
+      style: {
+        text: 'Sin datos para el filtro seleccionado',
+        fill: mutedColor,
+        fontSize: 14,
+        fontWeight: 700
+      }
+    };
+
+    state.charts.trend.setOption({
+      color: [warningColor, primaryColor],
+      tooltip: { trigger: 'axis' },
+      legend: { textStyle: { color: mutedColor } },
+      grid: { left: 48, right: 24, top: 44, bottom: 48 },
+      xAxis: {
+        type: 'category',
+        data: trend.map((item) => formatDate(item.fecha)),
+        axisLabel: { color: mutedColor },
+        axisLine: { lineStyle: { color: lineColor } }
+      },
+      yAxis: [
+        {
+          type: 'value',
+          name: 'Merma',
+          axisLabel: { color: mutedColor },
+          splitLine: { lineStyle: { color: lineColor } }
+        },
+        {
+          type: 'value',
+          name: '%',
+          axisLabel: { color: mutedColor, formatter: '{value}%' },
+          splitLine: { show: false }
+        }
+      ],
+      series: [
+        {
+          name: 'Merma',
+          type: 'bar',
+          data: trend.map((item) => item.merma)
+        },
+        {
+          name: '% merma',
+          type: 'line',
+          smooth: true,
+          yAxisIndex: 1,
+          data: trend.map((item) => Number(item.porcentajeMerma || 0).toFixed(2))
+        }
+      ],
+      graphic: trend.length ? [] : emptyGraphic,
+      textStyle: { color: textColor }
+    });
+
+    state.charts.bottle.setOption({
+      color: [primaryColor],
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: 130, right: 24, top: 24, bottom: 38 },
+      xAxis: {
+        type: 'value',
+        axisLabel: { color: mutedColor },
+        splitLine: { lineStyle: { color: lineColor } }
+      },
+      yAxis: {
+        type: 'category',
+        data: bottle.map((item) => item.codigoBotella),
+        axisLabel: { color: mutedColor },
+        axisLine: { lineStyle: { color: lineColor } }
+      },
+      series: [{
+        name: 'Merma',
+        type: 'bar',
+        data: bottle.map((item) => item.merma)
+      }],
+      graphic: bottle.length ? [] : emptyGraphic,
+      textStyle: { color: textColor }
+    });
   }
 
   function renderReport(data) {
@@ -224,6 +399,7 @@
     $('#reportRows').innerHTML = data.rows.length
       ? data.rows.map((row) => `
         <tr data-registro="${row.ID_REGISTRO}">
+          <td>${row.SEMANA || ''}</td>
           <td>${formatDate(row.FECHA_HORA)}</td>
           <td>${formatTime(row.FECHA_HORA)}</td>
           <td>${row.CODIGO_BOTELLA}</td>
@@ -235,14 +411,14 @@
           <td><button data-open-record="${row.ID_REGISTRO}">Abrir</button></td>
         </tr>
       `).join('')
-      : '<tr><td colspan="9" class="muted">Sin resultados.</td></tr>';
+      : '<tr><td colspan="10" class="muted">Sin resultados.</td></tr>';
   }
 
   function renderDetailEditor(item = {}) {
     const id = item.ID_DETALLE || '';
     return `
       <div class="edit-detail-row" data-detail-id="${id}">
-        <label>Codigo produccion
+        <label>Código producción
           <input class="editCodigoProduccion" value="${item.CODIGO_PRODUCCION || ''}">
         </label>
         <label>Formato
@@ -266,7 +442,7 @@
     const detalles = data.detalles.filter((item) => item.ESTADO !== 'ELIMINADO');
     $('#recordBody').innerHTML = `
       <div class="detail-grid">
-        <label>Codigo botella
+        <label>Código botella
           <select id="editCodigoBotella">
             ${state.botellas.map((item) => `
               <option value="${item.codigo}" ${item.codigo === registro.CODIGO_BOTELLA ? 'selected' : ''}>
@@ -285,10 +461,37 @@
       <div id="editDetails">
         ${detalles.map(renderDetailEditor).join('')}
       </div>
-      <button type="button" id="addEditDetail">Agregar linea</button>
-      <p class="muted">Las lineas quitadas se marcan como ELIMINADO al guardar.</p>
+      <button type="button" id="addEditDetail">Agregar línea</button>
+      <p class="muted">Las líneas quitadas se marcan como ELIMINADO al guardar.</p>
     `;
     $('#recordDialog').showModal();
+  }
+
+  async function loadDashboardDataFromFilters() {
+    setButtonBusy('#loadDashboard', true, 'Actualizando...');
+    try {
+      renderDashboard(await callApi('apiGetDashboard', buildFilters('dash', false)));
+    } catch (error) {
+      toast(error.message, true);
+    } finally {
+      setButtonBusy('#loadDashboard', false);
+    }
+  }
+
+  async function loadReportDataFromFilters() {
+    setButtonBusy('#loadReport', true, 'Buscando...');
+    try {
+      renderReport(await callApi('apiGetReport', buildFilters('report', true)));
+    } catch (error) {
+      toast(error.message, true);
+    } finally {
+      setButtonBusy('#loadReport', false);
+    }
+  }
+
+  function initializeFilters() {
+    $('#dashSemanaAnio').value = String(currentYear());
+    $('#reportSemanaAnio').value = String(currentYear());
   }
 
   async function refreshTemp(silent = true) {
@@ -313,6 +516,7 @@
       state.botellas = data.botellas;
       state.catalogoCompleto = data.catalogoCompleto;
       state.temp = data.temp;
+      initializeFilters();
       renderBotellas();
       renderFormatos();
       renderTemp();
@@ -336,6 +540,12 @@
       if (tab.dataset.tab === 'registro') {
         refreshTemp(true);
       }
+      if (tab.dataset.tab === 'dashboard') {
+        loadDashboardDataFromFilters().then(() => resizeCharts());
+      }
+      if (tab.dataset.tab === 'reporte') {
+        loadReportDataFromFilters();
+      }
       return;
     }
 
@@ -344,7 +554,7 @@
       try {
         state.temp = await callApi('apiDeleteTempLine', deleteTemp.dataset.deleteTemp);
         renderTemp();
-        toast('Linea eliminada.');
+      toast('Línea eliminada.');
       } catch (error) {
         toast(error.message, true);
       }
@@ -426,8 +636,53 @@
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       refreshTemp(true);
+      resizeCharts();
     }
   });
+
+  function resizeCharts() {
+    window.setTimeout(() => {
+      if (state.charts.trend) state.charts.trend.resize();
+      if (state.charts.bottle) state.charts.bottle.resize();
+    }, 80);
+  }
+
+  ['dashDesde', 'dashHasta', 'reportDesde', 'reportHasta'].forEach((id) => {
+    const input = $('#' + id);
+    input.addEventListener('click', () => openDatePicker(input));
+    input.addEventListener('change', () => {
+      clearWeekFilters(id.indexOf('dash') === 0 ? 'dash' : 'report');
+      if (id.indexOf('dash') === 0) {
+        debounceFilter('dashboardFilterTimer', loadDashboardDataFromFilters);
+      } else {
+        debounceFilter('reportFilterTimer', loadReportDataFromFilters);
+      }
+    });
+  });
+
+  ['dashSemanaAnio', 'dashSemanaDesde', 'dashSemanaHasta'].forEach((id) => {
+    $('#' + id).addEventListener('change', () => {
+      normalizeWeekRange('dash');
+      if (hasWeekFilters('dash')) {
+        clearDateFilters('dash');
+      }
+      debounceFilter('dashboardFilterTimer', loadDashboardDataFromFilters);
+    });
+  });
+
+  ['reportSemanaAnio', 'reportSemanaDesde', 'reportSemanaHasta', 'reportCodigo'].forEach((id) => {
+    $('#' + id).addEventListener('change', () => {
+      if (id.indexOf('Semana') !== -1) {
+        normalizeWeekRange('report');
+        if (hasWeekFilters('report')) {
+          clearDateFilters('report');
+        }
+      }
+      debounceFilter('reportFilterTimer', loadReportDataFromFilters);
+    });
+  });
+
+  window.addEventListener('resize', resizeCharts);
 
   $('#botellaSearch').addEventListener('input', () => {
     $('#botellaCodigo').value = '';
@@ -481,7 +736,7 @@
       $('#codigoProduccion').value = '';
       $('#cantidadCajas').value = '0';
       renderTemp();
-      toast('Linea agregada.');
+      toast('Línea agregada.');
     } catch (error) {
       toast(error.message, true);
     } finally {
@@ -502,7 +757,7 @@
       $('#tempEditDialog').close();
       state.currentTempEditId = null;
       renderTemp();
-      toast('Linea actualizada.');
+      toast('Línea actualizada.');
     } catch (error) {
       toast(error.message, true);
     }
@@ -525,7 +780,7 @@
     const zona1 = parseIntegerInput($('#zona1').value);
     const zona5 = Number(state.temp.zona5 || 0);
     if (!Number.isInteger(zona1) || zona1 < 0) {
-      toast('Zona 1 debe ser entero mayor o igual a cero.', true);
+      toast('Zona 1 debe ser un entero mayor o igual a cero.', true);
       setButtonBusy('#previewSave', false);
       return;
     }
@@ -586,28 +841,9 @@
     }
   });
 
-  $('#loadDashboard').addEventListener('click', async () => {
-    try {
-      renderDashboard(await callApi('apiGetDashboard', {
-        desde: $('#dashDesde').value,
-        hasta: $('#dashHasta').value
-      }));
-    } catch (error) {
-      toast(error.message, true);
-    }
-  });
+  $('#loadDashboard').addEventListener('click', loadDashboardDataFromFilters);
 
-  $('#loadReport').addEventListener('click', async () => {
-    try {
-      renderReport(await callApi('apiGetReport', {
-        desde: $('#reportDesde').value,
-        hasta: $('#reportHasta').value,
-        codigoBotella: $('#reportCodigo').value
-      }));
-    } catch (error) {
-      toast(error.message, true);
-    }
-  });
+  $('#loadReport').addEventListener('click', loadReportDataFromFilters);
 
   $('#printReport').addEventListener('click', () => window.print());
 
@@ -634,7 +870,7 @@
   $('#deletedRows').addEventListener('click', async (event) => {
     const restore = event.target.closest('[data-restore]');
     if (!restore) return;
-    const motivo = prompt('Motivo de restauracion');
+    const motivo = prompt('Motivo de restauración');
     if (!motivo) return;
     try {
       await callApi('apiRestoreRegistro', restore.dataset.restore, motivo);
@@ -648,7 +884,7 @@
   $('#deleteRegistro').addEventListener('click', async (event) => {
     event.preventDefault();
     if (!state.currentRecord) return;
-    const motivo = prompt('Motivo de eliminacion');
+    const motivo = prompt('Motivo de eliminación');
     if (!motivo) return;
     try {
       await callApi('apiDeleteRegistro', state.currentRecord.registro.ID_REGISTRO, motivo);

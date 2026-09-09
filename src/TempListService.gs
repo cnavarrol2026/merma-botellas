@@ -10,7 +10,7 @@ function setConfigValue_(key, value) {
     return item.CLAVE === key;
   });
   if (!row) {
-    throw new Error('No existe configuracion: ' + key);
+    throw new Error('No existe configuración: ' + key);
   }
   updateRecordByRow_(SHEETS.CONFIGURACION.name, row._row, {
     VALOR: value,
@@ -78,13 +78,13 @@ function addTempLine(payload) {
     if (currentBottle && currentBottle !== botella.CODIGO_BOTELLA) {
       throw new Error('La lista temporal en curso pertenece a la botella ' + currentBottle + '. Guarda o cancela antes de usar otra botella.');
     }
-    assertRequired_(payload.codigoProduccion, 'Codigo de produccion');
+    assertRequired_(payload.codigoProduccion, 'Código de producción');
     const codigoProduccion = normalizeText_(payload.codigoProduccion);
     const duplicate = rows.some(function (row) {
       return row.CODIGO_PRODUCCION === codigoProduccion;
     });
     if (duplicate) {
-      throw new Error('El codigo de produccion ya existe en la lista temporal.');
+      throw new Error('El código de producción ya existe en la lista temporal.');
     }
     const total = calculateLineTotal_(payload.formato, payload.cantidadCajas);
     appendRecord_(SHEETS.LISTA_TEMPORAL.name, {
@@ -106,20 +106,20 @@ function addTempLine(payload) {
 
 function updateTempLine(idTemporal, payload) {
   return withDocumentLock_(function () {
-    assertRequired_(payload.codigoProduccion, 'Codigo de produccion');
+    assertRequired_(payload.codigoProduccion, 'Código de producción');
     const id = normalizeText_(idTemporal);
     const codigoProduccion = normalizeText_(payload.codigoProduccion);
     const rows = readRows_(SHEETS.LISTA_TEMPORAL.name);
     const target = rows.find(function (row) { return row.ID_TEMPORAL === id; });
     if (!target) {
-      throw new Error('No existe la linea temporal.');
+      throw new Error('No existe la línea temporal.');
     }
     const botella = findBotellaActiva_(payload.codigoBotella || target.CODIGO_BOTELLA);
     const duplicate = rows.some(function (row) {
       return row.ID_TEMPORAL !== id && row.CODIGO_PRODUCCION === codigoProduccion;
     });
     if (duplicate) {
-      throw new Error('El codigo de produccion ya existe en la lista temporal.');
+      throw new Error('El código de producción ya existe en la lista temporal.');
     }
     const fecha = now_();
     const correo = currentEmail_();
@@ -151,7 +151,7 @@ function deleteTempLine(idTemporal) {
     const rows = readRows_(SHEETS.LISTA_TEMPORAL.name);
     const remaining = rows.filter(function (row) { return row.ID_TEMPORAL !== id; });
     if (remaining.length === rows.length) {
-      throw new Error('No existe la linea temporal.');
+      throw new Error('No existe la línea temporal.');
     }
     clearDataRows_(SHEETS.LISTA_TEMPORAL.name);
     appendRecords_(SHEETS.LISTA_TEMPORAL.name, remaining);
@@ -170,7 +170,7 @@ function clearTempList_(auditAction, motivo) {
 
 function cancelTempList() {
   return withDocumentLock_(function () {
-    clearTempList_(APP_CONFIG.ACCIONES.CANCELAR, 'Cancelacion de merma en curso');
+    clearTempList_(APP_CONFIG.ACCIONES.CANCELAR, 'Cancelación de merma en curso');
     return getTempState();
   });
 }
