@@ -90,20 +90,18 @@
         </section>
 
         <section class="panel break-panel">
-          <div class="section-head compact">
+          <div class="break-entry-bar">
             <h2>Botellas quebradas</h2>
+            <p class="muted break-bottle">Botella: <strong id="quebradaBotella">Sin botella seleccionada</strong></p>
+            <label>Cantidad
+              <input id="cantidadQuebrada" type="text" inputmode="numeric" value="0">
+            </label>
+            <button id="addBreak">Agregar</button>
             <div class="inline-kpi break-kpi" aria-live="polite">
               <span>Total quebradas</span>
               <strong><span id="totalQuebradas">0</span></strong>
               <small>botellas</small>
             </div>
-          </div>
-          <p class="muted break-bottle">Botella: <strong id="quebradaBotella">Sin botella seleccionada</strong></p>
-          <div class="form-row break-entry">
-            <label>Cantidad
-              <input id="cantidadQuebrada" type="text" inputmode="numeric" value="0">
-            </label>
-            <button id="addBreak">Agregar</button>
           </div>
           <div class="compact-table">
             <table>
